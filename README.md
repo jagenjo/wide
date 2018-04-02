@@ -6,6 +6,17 @@ It allows to open several files, to browser remote folders, and the privileges a
 
 ![WIDE preview](wide_preview.PNG "WIDE preview")
 
+## Features
+
+- Load/Save remote files with nice syntax highlighting (editor uses monaco-editor, the editor from VSCode).
+- Browser server files
+- Saves the session (restores the state when opening the editor again)
+- Console bar to launch commands (easy to add new ones)
+- Allows to "execute" the project (open in another tab the edited website)
+- Very simple (only three files in total, does not use any build script)
+- Easy to install (does not require launching any daemon or having a databse).
+
+
 ## Security
 
 The way it grants access to the files in the server is by using a key to have access to a server folder.
