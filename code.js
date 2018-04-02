@@ -636,12 +636,23 @@ var WIDE = {
 			element.dataset["is_dir"] = file.is_dir;
 			element.dataset["filename"] = file.name;
 			element.dataset["fullpath"] = fullpath || ".";
-			element.addEventListener("click", function(e){
-				if( this.dataset["is_dir"] == "true" )
-					WIDE.list( this.dataset["fullpath"] );
-				else
-					WIDE.load( this.dataset["fullpath"], null, true );
-			});
+			var can_be_opened = true;
+			if(file.mime_type)
+			{
+				element.dataset["mime_type"] = file.mime_type;
+				var type = file.mime_type.split("/")[0].toLowerCase();
+				can_be_opened = type != "image" && type != "audio" && type != "video";
+				if(!can_be_opened)
+					element.classList.add("blocked");
+			}
+			element.setAttribute("title",fullpath);
+			if(can_be_opened)
+				element.addEventListener("click", function(e){
+					if( this.dataset["is_dir"] == "true" )
+						WIDE.list( this.dataset["fullpath"] );
+					else
+						WIDE.load( this.dataset["fullpath"], null, true );
+				});
 		}
 
 		//new file

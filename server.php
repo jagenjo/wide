@@ -155,6 +155,7 @@
 			$data = Array();
 			$data["name"] = basename( $filename );
 			$data["is_dir"] = is_dir( $filename );
+			$data["mime_type"] = mime_content_type( $filename );
 			$data["size"] = filesize( $filename );
 			$files_final[] = $data;
 		}
