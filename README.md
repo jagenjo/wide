@@ -1,4 +1,4 @@
-# wide.js
+# wide
 
 WIDE is a Web IDE based in monaco-editor, it allows to edit remote files in your own server quite easily, instead of having to use local files or uploading files through SFTP.
 
