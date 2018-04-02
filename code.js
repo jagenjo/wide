@@ -1,3 +1,4 @@
+//WIDE.js Coded by Javi Agenjo (@tamat) 2018
 "use strict"
 
 //main class
@@ -11,6 +12,7 @@ var WIDE = {
 	extensions_to_language: { "js":"javascript" },
     key: "",
 	buttons: [],
+    server_url: "server.php", //change it if it is hosted in a different folder that the index.html
 
 	init: function()
 	{
@@ -157,7 +159,7 @@ var WIDE = {
 
 		var info = { method: 'POST',  body: form, headers: headers };
 
-		fetch("server.php",info).then(function(resp){
+		fetch( this.server_url, info).then(function(resp){
 			return resp.text();
 		}).then( function(data){
 			var r = JSON.parse(data);
@@ -203,7 +205,7 @@ var WIDE = {
 
         this.editor_header.classList.add("saving");
 
-		fetch("server.php",info).then(function(resp){
+		fetch( this.server_url , info ).then(function(resp){
 			return resp.text(); 
 		}).then( function(data){
             WIDE.editor_header.classList.remove("saving");
@@ -235,7 +237,7 @@ var WIDE = {
         form.append("key", this.key );
 		var info = { method: 'POST', body: form };
 
-		fetch("server.php",info).then(function(resp){
+		fetch( this.server_url, info ).then(function(resp){
 			return resp.text();
 		}).then( function(data){
 			var r = JSON.parse(data);
@@ -365,7 +367,7 @@ var WIDE = {
         form.append("key", this.key );
 		var info = { method: 'POST', body: form };
 
-		fetch("server.php",info).then(function(resp){
+		fetch( this.server_url, info ).then(function(resp){
 			return resp.text();
 		}).then( function(data){
 			var r = JSON.parse(data);
