@@ -4,6 +4,8 @@ WIDE is a Web IDE based in monaco-editor, it allows to edit remote files in your
 
 It allows to open several files, to browser remote folders, and the privileges are based in a config.json that you can store server side.
 
+![WIDE preview](wide_preview.PNG "WIDE preview")
+
 # usage
 
 Copy all files to a folder in your host accessible from HTTP.
