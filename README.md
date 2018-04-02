@@ -6,9 +6,11 @@ It allows to open several files, to browser remote folders, and the privileges a
 
 ![WIDE preview](wide_preview.PNG "WIDE preview")
 
+It has a layer of security but it is not as safe as I would like to, so do not use it if your code is very sensitive to people trying to hack you.
+
 # usage
 
-Copy all files to a folder in your host accessible from HTTP.
+Copy all repository files to a folder in your host accessible from HTTP.
 
 Create the ```wide_config.json``` in a folder that is not accessible through HTTP, like ```/home/``` or ```/home/YOUR_USERNAME''':
 
@@ -35,6 +37,12 @@ Once installed, you access the website and set the key typing in the bottom bar:
 ```
 key PROJECT_KEY
 ```
+
+You can use the buttons on top of the sidebar to browser server files.
+
+## Contact
+
+For any suggestions or comments, you can contact me at javi.agenjo@gmail.com
 
 
 
