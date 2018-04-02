@@ -6,13 +6,22 @@ It allows to open several files, to browser remote folders, and the privileges a
 
 ![WIDE preview](wide_preview.PNG "WIDE preview")
 
-It has a layer of security but it is not as safe as I would like to, so do not use it if your code is very sensitive to people trying to hack you.
+## Security
 
-# usage
+The way it grants access to the files in the server is by using a key to have access to a server folder.
+The first time using the editor you must set the key using the lower console bar, and it is stored in localStorage.
+
+When accessing the server (load file, store, browse) it sends the key in the request header, and the server checks if the key matches any of the keys in its project list (configured in the wide_config.json). 
+
+This is a layer of security but it could be easily hacked, so **do not use wide.js if your code is very sensitive to people trying to hack you**.
+
+## Installation
 
 Copy all repository files to a folder in your host accessible from HTTP.
 
-Create the ```wide_config.json``` in a folder that is not accessible through HTTP, like ```/home/``` or ```/home/YOUR_USERNAME''':
+Create the ```wide_config.json``` in a folder **that is not accessible through HTTP**, like ```/home/``` or ```/home/YOUR_USERNAME```. If the ```wide_config.json``` is accessible through HTTP people will be able to see your keys and have access to execute malicious code in your host, so you will have a serious security risk in your server, be careful.
+
+The config should be like this:
 
 ```json
 {
