@@ -109,7 +109,8 @@ var WIDE = {
 			value: "",
 			model: model,
 			language: 'javascript',
-			theme: 'vs-dark'
+			theme: 'vs-dark',
+			folding: true
 		});
 		file_info.editor = editor;
 		editor.file_info = file_info;
@@ -603,7 +604,7 @@ var WIDE = {
 		folder = this.cleanPath( folder );
 		this.current_folder = folder;
 		var tree = folder.split("/");
-		var folders = [{ name: ".", is_dir: true, is_parent: true, fullpath: "." }];
+		var folders = [{ name: "root folder", is_dir: true, is_parent: true, fullpath: "." }];
 		for( var i = 0; i < tree.length; ++i )
 			folders.push({ name: tree[i], is_dir: true, is_parent: true, fullpath: tree.slice(0,i+1).join("/") });
 		var files_and_folders = folders.concat( files );
@@ -623,28 +624,31 @@ var WIDE = {
 				element.classList.add("folder");
 			if( file.is_parent )
 				element.classList.add("parent-folder");
-			element.innerHTML = '<svg class="icon"><use xlink:href="#si-bootstrap-'+(file.is_dir ? "folder-close":"file")+'" /></svg> ' + file.name;
+			var icon = "bootstrap-file";
+			if( file.is_dir ) 
+				icon = "bootstrap-folder-close";
+			if( file.is_parent ) 
+				icon = "bootstrap-play";
+			element.innerHTML = '<svg class="icon"><use xlink:href="#si-'+icon+'" /></svg> ' + file.name;
 			container.appendChild(element);
-			var depth = fullpath.split("/").length;
+			var depth = !fullpath ? 0 : fullpath.split("/").length;
 			element.style.marginLeft = (depth * 5) + "px";
 			element.dataset["is_dir"] = file.is_dir;
 			element.dataset["filename"] = file.name;
-			element.dataset["fullpath"] = fullpath;
+			element.dataset["fullpath"] = fullpath || ".";
 			element.addEventListener("click", function(e){
 				if( this.dataset["is_dir"] == "true" )
 					WIDE.list( this.dataset["fullpath"] );
 				else
-				{
 					WIDE.load( this.dataset["fullpath"], null, true );
-					//container.style.display = "none";
-					//document.querySelector("#open-files").style.display = "";
-				}
 			});
 		}
 
+		//new file
+		var new_file_text = '<svg class="icon"><use xlink:href="#si-elusive-file-new" /></svg> new file';
 		var element = document.createElement("div");
 		element.className = "filename new-file";
-		element.innerHTML = " + new file";
+		element.innerHTML = new_file_text;
 		element.addEventListener("click", function(e){
 			element.innerHTML = "<input type='text' placeHolder='type filename'/>";
 			var input = element.querySelector("input");
@@ -658,11 +662,11 @@ var WIDE = {
 					WIDE.toggleFiles();
 					WIDE.create(filename,"",true);
 				}
-				setTimeout(function(){ element.innerHTML = " + new file"; },1);
+				setTimeout(function(){ element.innerHTML = new_file_text; },1);
 			});
 			input.focus();
 			input.addEventListener("blur", function(e){
-				setTimeout(function(){ element.innerHTML = " + new file"; },1);
+				setTimeout(function(){ element.innerHTML = new_file_text; },1);
 			});
 		});
 		container.appendChild( element );

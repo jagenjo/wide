@@ -7,9 +7,9 @@
 	$ignore_types = Array("image"=>true,"audio"=>true,"video"=>true);
 
 	//load config.json
-	$config_path = "/home/coder_config.json"; //CHANGE THIS TO ADD YOUR OWN CONFIG FOLDER
+	$config_path = "/home/wide_config.json"; //CHANGE THIS TO ADD YOUR OWN CONFIG FOLDER
 	if( !file_exists($config_path) )
-		die('{"status":-1, "msg":"coder config.json not found. edit server.php"}');
+		die('{"status":-1, "msg":"coder wide_config.json not found. edit server.php"}');
 	$content = file_get_contents($config_path);
 	$config = json_decode($content,true);
    	if( !isset($config["projects"]) )
