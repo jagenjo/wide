@@ -8,13 +8,14 @@ It allows to open several files, to browser remote folders, and the privileges a
 
 ## Features
 
-- Load/Save remote files with nice syntax highlighting (editor uses monaco-editor, the editor from VSCode).
+- Cool text editor with nice syntax highlighting (uses monaco-editor, the editor from VSCode).
+- Load/Save remote files 
 - Browser server files
 - Saves the session (restores the state when opening the editor again)
-- Console bar to launch commands (easy to add new ones)
-- Allows to "execute" the project (open in another tab the edited website)
-- Very simple (only three files in total, does not use any build script)
-- Easy to install (does not require launching any daemon or having a databse).
+- Console to launch commands (easy to add new ones) or to visualize logs
+- Allows to "execute" the project 
+- Very simple, only three files in total (html,js,php), does not use any build script nor ES6 features.
+- Easy to install (does not require launching any daemon or having a configure a database).
 
 
 ## Security
