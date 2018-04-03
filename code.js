@@ -12,6 +12,7 @@ var WIDE = {
 	extensions_to_language: { "js":"javascript" },
     key: "",
 	buttons: [],
+    console_open: false,
     server_url: "server.php", //change it if it is hosted in a different folder that the index.html
 
 	init: function()
@@ -30,20 +31,19 @@ var WIDE = {
 			if(e.keyCode == 13)
 			{
 				WIDE.onCommand( this.value );
+                this.style.opacity = 1;
 				this.value = "";
 				return;
 			}
+            if(this.value.substr(0,4) == "key ") //hide key
+                this.style.opacity = 0;
+            else
+                this.style.opacity = 1;
 		});
 
 		document.addEventListener("keydown", this.onKey.bind(this) );
 
-		window.onresize = function()
-		{
-			for(var i = 0; i < WIDE.files.length; ++i)
-				if(WIDE.files[i].editor)
-					WIDE.files[i].editor.layout();
-		}
-
+		window.onresize = this.onResize.bind(this);
         window.onbeforeunload = function()
         {
             WIDE.saveSession();
@@ -64,10 +64,19 @@ var WIDE = {
 				element.className = b.className;
 			element.setAttribute("title",b.name);
 			element.dataset["command"] = b.command;
-			element.addEventListener("click",function(e){ WIDE.onCommand( this.dataset["command"] ); });
+			element.addEventListener("click",function(e){ WIDE.onCommand( this.dataset["command"], true ); });
 			container.appendChild(element);
 		}
+
+        this.console_element = document.querySelector("#console");
 	},
+
+    onResize: function()
+    {
+        for(var i = 0; i < this.files.length; ++i)
+            if(this.files[i].editor)
+                this.files[i].editor.layout();
+    },
 
     onReady: function()
     {
@@ -120,7 +129,6 @@ var WIDE = {
 			WIDE.onContentChange( file_info );
 		});
 		editor.onContextMenu(function(e){
-			console.log("context",e);
 		});
 		editor.onKeyDown( function(e){
 			WIDE.onEditorKey(e);
@@ -209,10 +217,12 @@ var WIDE = {
 		fetch( this.server_url , info ).then(function(resp){
 			return resp.text(); 
 		}).then( function(data){
-            WIDE.editor_header.classList.remove("saving");
 			var r = JSON.parse(data);
 			if(r.status == 1)
+            {
+                WIDE.editor_header.classList.remove("saving");
                 WIDE.onFileSaved( filename );
+            }
 			else
 				console.error( r.msg );
 		});
@@ -348,20 +358,27 @@ var WIDE = {
         this.files_by_name = {};
         this.current_file = null;
 		document.querySelector("#open-files").innerHTML = "";
-
-        //this.editor.setValue("");
+        document.querySelector("#code-editor").innerHTML = "";
     },
 
 	list: function( folder )
 	{
 		folder = folder || this.current_folder;
+
 		queryforEach("#sidebar .header button",function(a){ a.classList.remove("selected"); });
 		document.querySelector(".list-files-button").classList.add("selected");
 		document.querySelector("#open-files").style.display = "none";
 		var container = document.querySelector("#folder-files");
 		container.style.display = "block";
+
+        if(!this.key)
+        {
+        	var container = document.querySelector("#folder-files");
+            container.innerHTML = "cannot access server. No key set";
+            return;
+        }
+
 		container.classList.add("loading");
-		//container.innerHTML = "loading...";
 		var form = new FormData();
 		form.append("action","list");
 		form.append("folder", folder );
@@ -399,7 +416,7 @@ var WIDE = {
 				continue;
 			var item = { name: file_info.name, cursor: file_info.cursor, scrollTop: file_info.scrollTop };
             if(file_info._exist === false)
-				item.content = file_info.editor.getValue();
+				item.content = file_info.editor ? file_info.editor.getValue() : file_info.content;
             o.files.push(item);
         }
         if(this.current_file)
@@ -483,18 +500,28 @@ var WIDE = {
         return true;
     },
 
-	play: function()
+	execute: function()
 	{
-		console.log("evaluation code...");
+		console.log("evaluating code");
+        console.log("--------------------------");
 		var code = this.current_file.editor.getValue();
 		var func = new Function(code);
-		func.call(window);
+		var r = func.call(window);
+        if(r === undefined)
+            console.log("--------------------------");
 	},
 
     //events
-	onCommand: function(cmd)
+	onCommand: function( cmd, skip_console )
 	{
-		console.log(cmd);
+        if(!skip_console)
+		    console.log( "> " + cmd );
+        if(cmd[0] == "=") //eval JS
+        {
+            var r = eval(cmd.substr(1));
+            console.log(String(r));
+            return;
+        }
 		var t = cmd.split(" ");
 		var func = this.commands[t[0]];
 		if( !func )
@@ -502,7 +529,9 @@ var WIDE = {
 			console.error("command unknown: " + t[0]);
 			return;
 		}
-		func( cmd, t );
+		var r = func( cmd, t );
+        if(r && r.constructor === String)
+            console.log(r);
 	},
 
 	onKey: function(e)
@@ -513,16 +542,17 @@ var WIDE = {
 			e.preventDefault();
 			this.save();
 		}
-		if( e.code == "KeyP" && e.ctrlKey )
+		if( (e.code == "KeyP" || e.code == "Enter") && e.ctrlKey )
 		{
 			e.preventDefault();
-			this.play();
+			this.execute();
 		}
 		if( e.keyCode >= 49 && e.keyCode <= 58 && e.altKey && e.ctrlKey )
         {
             var file_info = this.files[e.keyCode - 49];
             if(file_info)
                 this.open( file_info.name );
+            e.preventDefault();
         }
         //else if( e.keyCode == 27 )
         //    document.querySelector("#bottom input").focus();
@@ -559,7 +589,8 @@ var WIDE = {
 			container.appendChild(element);
 			element.dataset["filename"] = filename;
 			element.querySelector(".close").addEventListener("click", function(e){
-				if( confirm("File not saved, are you sure you want to "+(e.shiftKey ? "delete" : "close")+" it?\nData will be lost." ) )
+                var is_saved = file_info._exist !== false;
+				if( is_saved || confirm("File not saved, are you sure you want to "+(e.shiftKey ? "delete" : "close")+" it?\nData will be lost." ) )
 				{
 					if(e.shiftKey)
 						WIDE.delete( element.dataset["filename"] );
@@ -698,18 +729,7 @@ var WIDE = {
 		if(!this.current_file)
 			return;
         var old = this.current_file.content;
-		/*
-        this.current_file.content = this.editor.getValue();
-        this.current_file.cursor = this.editor.getPosition();
-		this.current_file.scrollTop = this.editor.getScrollTop();
-		*/
-
 		this.current_file.file_element.classList.remove("selected");
-
-        /*
-        if(old != this.current_file.content)
-            this.current_file.file_element.classList.add("modifyed");
-        */
     },
 
 	onContentChange: function(file_info)
@@ -744,34 +764,62 @@ var WIDE = {
 		document.querySelector("#folder-files").style.display = "none";
 		queryforEach("#sidebar .header button",function(a){ a.classList.remove("selected"); });
 		document.querySelector(".open-files-button").classList.add("selected");
-	}
+	},
+
+    toConsole: function( str, className )
+    {
+        var elem = document.createElement("div");
+        elem.innerText = str;
+        elem.className = "msg " + (className || "");
+        this.console_element.appendChild(elem);
+        if( this.console_element.childNodes.length > 1000)
+            this.console_element.removeChild( this.console_element.childNodes[0] );
+        this.console_element.scrollTop = 1000000;
+    },
+
+    toggleConsole: function()
+    {
+        this.console_open = !this.console_open;
+        document.querySelector("#container").classList.toggle("show_console");
+        this.onResize();
+    }
 };
 
-
+//commands
 WIDE.commands.load = function( cmd, t ) { WIDE.load( t[1], null, true );} 
 WIDE.commands.save = function( cmd, t ) { WIDE.save(); }
 WIDE.commands.new = function( cmd, t ) { WIDE.create(t[1],"",true); }
 WIDE.commands.delete = function( cmd, t ) { WIDE.delete(t[1]); }
 WIDE.commands.close  = function( cmd, t ) { WIDE.close(t[1]); }
 WIDE.commands.reset  = function( cmd, t ) { WIDE.reset(); }
-WIDE.commands.play = function( cmd, t ) { WIDE.play(); }
+WIDE.commands.execute = function( cmd, t ) { WIDE.execute(); }
 WIDE.commands.list = function( cmd, t ) { WIDE.list(t[1]); }
 WIDE.commands.files = function( cmd, t ) { WIDE.toggleFiles(); }
-WIDE.commands.key = function( cmd, t ) { WIDE.key = t.slice(1).join(" "); }
+WIDE.commands.reload = function( cmd, t ) { for(var i in WIDE.files) WIDE.load( WIDE.files[i].name ); }
+WIDE.commands.key = function( cmd, t ) { WIDE.key = t.slice(1).join(" "); WIDE.commands.clear(); return "key assigned"; }
+WIDE.commands.console = function( cmd, t ) { WIDE.toggleConsole(); }
+WIDE.commands.clear = function( cmd, t ) { WIDE.console.element.innerHTML = ""; }
 
+//buttons
 WIDE.buttons.push({ name:"new", icon:"elusive-file-new", command: "new"});
 WIDE.buttons.push({ name:"current files", className:'open-files-button selected', icon:"bootstrap-file", command: "files" });
 WIDE.buttons.push({ name:"open file", className:'list-files-button', icon:"bootstrap-folder-open", command: "list" });
 WIDE.buttons.push({ name:"save current", icon:"bootstrap-import", command: "save" });
-WIDE.buttons.push({ name:"execute code", icon:"bootstrap-play", command: "play" });
+WIDE.buttons.push({ name:"show console", icon:"icomoon-terminal", command: "console" });
+WIDE.buttons.push({ name:"execute code", icon:"bootstrap-play", command: "execute" });
 
 //helpers
-function queryforEach( selector,callback )
-{
-	var list = document.querySelectorAll(selector);
-	for(var i = 0;i < list.length; ++i)
-		callback( list[i] );
-}
+function queryforEach( selector,callback ) { var list = document.querySelectorAll(selector); for(var i = 0;i < list.length; ++i) callback( list[i] ); }
+
+//redirect console
+console._log = console.log;
+console._warn = console.warn;
+console._error = console.error;
+console.log = function(){ console._log.apply(console,arguments); WIDE.toConsole( Array.prototype.slice.call(arguments).map(function(a){ return String(a); }).join(","),"log");  };
+console.warn = function(){ console._warn.apply(console,arguments); WIDE.toConsole( Array.prototype.slice.call(arguments).map(function(a){ return String(a); }).join(","),"warn"); };
+console.error = function(){ console._error.apply(console,arguments); WIDE.toConsole( Array.prototype.slice.call(arguments).map(function(a){ return String(a); }).join(","),"error"); };
 
 WIDE.init();
+console.log("wide editor created by Javi Agenjo (@tamat) 2018");
+console.log("************************************************");
 

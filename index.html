@@ -3,6 +3,7 @@
 <head>
 	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 	<meta http-equiv="Content-Type" content="text/html;charset=utf-8" >
+    <title>wide</title>
 
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" style="width:0;height:0;position:absolute;overflow:hidden;">
   <defs>
@@ -16,12 +17,17 @@
 <symbol viewBox="0 0 1200 1200" aria-labelledby="ifsi-elusive-remove-title" id="si-elusive-remove"><path d="M0 264.84L335.16 600 0 935.16 264.84 1200 600 864.84 935.16 1200 1200 935.16 864.84 600 1200 264.84 935.16 0 600 335.16 264.84 0 0 264.84z"/></symbol>
 <symbol viewBox="0 0 1000 1000" aria-labelledby="exsi-bootstrap-menu-hamburger-title" id="si-bootstrap-menu-hamburger"><path d="M25 0h950q10 0 17.5 7.5T1000 25v150q0 10-7.5 17.5T975 200H25q-10 0-17.5-7.5T0 175V25Q0 15 7.5 7.5T25 0zm0 400h950q10 0 17.5 7.5t7.5 17.5v150q0 10-7.5 17.5T975 600H25q-10 0-17.5-7.5T0 575V425q0-10 7.5-17.5T25 400zm0 400h950q10 0 17.5 7.5t7.5 17.5v150q0 10-7.5 17.5T975 1000H25q-10 0-17.5-7.5T0 975V825q0-10 7.5-17.5T25 800z"/></symbol>
 <symbol viewBox="0 0 1100 1300" aria-labelledby="jfsi-bootstrap-trash-title" id="si-bootstrap-trash"><path d="M400 0h300q41 0 70.5 29.5T800 100v100h275q10 0 17.5 7.5t7.5 17.5v75H0v-75q0-10 7.5-17.5T25 200h275V100q0-41 29.5-70.5T400 0zm0 100v100h300V100H400zm600 300v800q0 41-29.5 70.5T900 1300H200q-41 0-70.5-29.5T100 1200V400h900zM200 500v700h100V500H200zm200 0v700h100V500H400zm200 0v700h100V500H600zm200 0v700h100V500H800z"/></symbol>
+<symbol viewBox="0 0 16 14" aria-labelledby="qlsi-icomoon-terminal-title" id="si-icomoon-terminal"><path d="M0 0v14h16V0H0zm15 13H1V1h14v12zM14 2H2v10h12V2zM7 7H6v1H5v1H4V8h1V7h1V6H5V5H4V4h1v1h1v1h1v1zm4 2H8V8h3v1z"/></symbol>
   </defs>
 </svg>
 
 <style>
 html,body,#container { width: 100%; height: 100%; margin: 0; padding: 0; background-color: #1e1e1e; font-family: Consolas, "Courier New", monospace; color: #d4d4d4; }
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track {  background-color: hsla(0,0%,29%,.4); }
+::-webkit-scrollbar-thumb { background-color: hsla(0,0%,59%,.4); }
 div { margin: 0; padding: 0; box-sizing: border-box; }
+
 #container { position: relative; overflow: hidden; }
 #top { position: relative; overflow: hidden; width: 100%; height: calc( 100% - 30px ); border-bottom: 1px solid black; }
 #sidebar { width: 239px; height: 100%; position: absolute; left: 0; top: 0; border-right: 1px solid #000; }
@@ -33,9 +39,6 @@ div { margin: 0; padding: 0; box-sizing: border-box; }
 #code-header{ width: 100%; height: 30px; color: #AAA; background-color: #111; line-height: 30px; padding-left: 10px; }
 #code-header .close { float: right; cursor: pointer; }
 #code-editor{ width: 100%; height: calc( 100% - 30px); }
-#bottom { position: absolute; overflow: hidden; bottom: 0; width: 100%; height: 30px; background-color: black; color: #AAA; }
-#bottom .prompt { width: 14px; display: inline-block; }
-#bottom input { background-color: black; width: calc( 100% - 14px ); height: 100%; border: 0; color: white; font-family: "Courier New";}
 #folder-files .icon { fill: #777; width: 14px; height: 14px; padding: 1px; display: inline-block; }
 .folder .icon { fill: #5abd66 !important; opacity: 0.5; }
 .parent-folder .icon { fill: #729ad8 !important; }
@@ -46,7 +49,7 @@ button:focus, input:focus { outline: 0; }
 .filename:hover { color: #FFF !important; cursor: pointer; background-color: #222; }
 .filename:hover .icon { fill: #FFF !important; }
 .filename.selected { background-color: #333; }
-.filename.modifyed { color: #FAA; }
+.filename.modifyed { text-decoration: underline; }
 .filename.notloaded { opacity: 0.5; }
 .filename .number { opacity: 0.5; font-size: 0.6em; border-radius:2px; background-color:#333; border: 1px solid #444; margin-right: 4px; min-width: 1em; }
 .filename .close { float: right; opacity: 0.5; }
@@ -62,18 +65,25 @@ button:focus, input:focus { outline: 0; }
 #sidebar button.selected .icon { fill: #DDD; }
 #sidebar .project-title { background-color: #404040; color: #b5b5b5; padding: 4px; padding-left: 10px; width: 100%; margin-bottom: 4px; }
 .saving { background-color: white !important; color: black !important; }
-::-webkit-scrollbar { width: 10px; }
-::-webkit-scrollbar-track {  background-color: hsla(0,0%,29%,.4); }
-::-webkit-scrollbar-thumb { background-color: hsla(0,0%,59%,.4); }
+
+#bottom { position: absolute; overflow: hidden; bottom: 0; width: 100%; height: 30px; background-color: black; color: #AAA; }
+#bottom .text-input { height: 30px; width: 100%; }
+#bottom .prompt { width: 14px; display: inline-block; }
+#bottom input { background-color: black; width: calc( 100% - 14px ); height: 100%; border: 0; color: white; font-size: 16px; font-family: "Courier New";}
+
+#console { width: 100%; background-color: black; color: #EEE; }
+#container.show_console #top { height: 50%; }
+#container.show_console #console { display: block !important; height: calc( 100% - 30px ); }
+#container.show_console #bottom { height: 50%; }
+#console .msg { color: #eee; padding-left: 5px; }
+#console .msg.warn { color: #ffde3a; }
+#console .msg.error { color: #f85d5d; }
 </style>
 
 </head>
 <body>
 
-<div id="container"><div id="top"><div id="sidebar"><div class="header"></div><div id="open-files"></div><div id="folder-files"></div></div><div id="code-area"><div id="code-header"></div><div id="code-editor"></div></div></div><div id="bottom"><span class="prompt">]</span><input type="text" placeHolder="type commands here..." id="console-input" autocorrect="off" autocapitalize="off" spellcheck="false"/></div></div>
-
-<div id="icons" style="display:none">
-</div>
+<div id="container"><div id="top"><div id="sidebar"><div class="header"></div><div id="open-files"></div><div id="folder-files"></div></div><div id="code-area"><div id="code-header"></div><div id="code-editor"></div></div></div><div id="bottom"><div id="console" style="display:none"></div><div class="text-input"><span class="prompt">]</span><input type="text" placeHolder="type commands here..." id="console-input" autocorrect="off" autocapitalize="off" spellcheck="false"/></div></div></div>
 
 <script src="js/monaco-editor/min/vs/loader.js"></script>
 <script src="code.js"></script>
