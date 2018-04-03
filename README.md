@@ -20,18 +20,21 @@ It allows to open several files, to browser remote folders, and the privileges a
 
 ## Security
 
-The way it grants access to the files in the server is by using a key to have access to a server folder.
-The first time using the editor you must set the key using the lower console bar, and it is stored in localStorage.
+The way it grants access to the files in the server is by using keys that grant you access to server folders.
 
-When accessing the server (load file, store, browse) it sends the key in the request header, and the server checks if the key matches any of the keys in its project list (configured in the wide_config.json). Keys are passed through MD5 to 
+The server owner creates a config file ```wide_config.json``` that contains keys associated to some server folders.
 
-This is a layer of security but it could be easily hacked, so **do not use wide.js if your code is very sensitive to people trying to hack you**.
+The first time using the editor in a browser you must set the key using the lower console bar, and it is stored in localStorage (not hashed though).
+
+When accessing the server (load file, store, browse) it sends the key in the request header, and the server checks if the key matches any of the keys in its project list (configured in the ```wide_config.json```). If the server has the use_md5 feature enabled, it will hash first the key using md5 and then compare it with the one in the config file.
+
+This is a layer of security that helps in case the config file is accessed by a malicious user, but it could still be easily hacked using an attack by dictionary, so **do not use wide.js if your code is very sensitive to people trying to hack you**.
 
 ## Installation
 
 Copy all repository files to a folder in your host accessible from HTTP.
 
-Create the ```wide_config.json``` in a folder **that is not accessible through HTTP**, like ```/home/``` or ```/home/YOUR_USERNAME```. If the ```wide_config.json``` is accessible through HTTP people will be able to see your keys and have access to execute malicious code in your host, so you will have a serious security risk in your server, be careful.
+Create the ```wide_config.json``` in a folder **that is not accessible through HTTP**, like ```/home/``` or ```/home/YOUR_USERNAME```. If the ```wide_config.json``` is accessible through HTTP people will be able to see your keys (although if they are in md5 it still requires some work to get the key) and have access to execute malicious code in your host, so you will have a serious security risk in your server, be careful.
 
 The config should be like this:
 
@@ -53,9 +56,10 @@ The config should be like this:
 ```
 
 Where ```PROJECT_KEY``` is the key that grants you access to that folder (and all its subfolders).
-By default the keys in the config should be hashed using MD5 in case the wide_config.json is read by an intruder, it still has a layer of security. To apply MD5 to your keys you can use: http://www.md5.cz/
 
-You can disable the md5 in the server by changing the variable use_md5 to false ```$use_md5 = false;```
+By default the keys in the config should be hashed using MD5, this way if the ```wide_config.json``` is read by an intruder, it still has a layer of security. To apply MD5 to your keys when writing the config, you can use: http://www.md5.cz/
+
+You can disable the md5 in the server by changing the variable use_md5 to false ```$use_md5 = false;``` although I do not recommend it.
 
 Once installed, you access the website and set the key typing at the bottom console bar:
 ```
