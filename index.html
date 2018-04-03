@@ -47,19 +47,22 @@ div, p { margin: 0; padding: 0; box-sizing: border-box; }
 button:focus, input:focus { outline: 0; }
 .editor-wrapper { width: 100%; height: 100%; }
 .filename { color: #d4d4d4; padding: 2px 5px; white-space: nowrap; overflow: hidden; }
-#folder-files .filename { padding: 0px 2px; }
-.filename:hover { color: #FFF !important; cursor: pointer; background-color: #222; }
-.filename:hover .icon { fill: #FFF !important; }
+.filename { padding: 0px 2px; }
+#open-files .filename:hover, #folder-files .filename:hover { color: #FFF !important; cursor: pointer; background-color: #222; }
+#open-files .filename:hover .icon, #folder-files .filename:hover .icon { fill: #FFF !important; }
 .filename.selected { background-color: #333; }
 .filename.modifyed { text-decoration: underline; }
 .filename.notloaded { opacity: 0.5; }
 .filename .number { opacity: 0.5; font-size: 0.6em; border-radius:2px; background-color:#333; border: 1px solid #444; margin-right: 4px; min-width: 1em; }
-.filename .close { float: right; opacity: 0.5; }
+.filename .close { float: right; opacity: 0.5; cursor: pointer; }
 .filename.folder { font-weight: bold; color: #5abd66; }
 .filename.parent-folder { font-weight: bold; color: #729ad8; }
-.filename.new-file { opacity: 0.5; padding-left: 8px !important; }
+.filename.new-file { opacity: 0.5; padding-left: 8px !important; margin-bottom: 10px; }
 .filename.blocked { opacity: 0.25; }
 .filename.new-file input { width: 100%; background-color: black; color: white; border: 0; padding: 4px; }
+#code-header .filename { color: #AAA;}
+#code-header .filename .slash { color: #f242f2; margin: 0px 2px; }
+#code-header .filename .last { color: white; }
 #sidebar .header button { background-color: black; margin-right: 2px; border: 0; color: #EEE; cursor: pointer; font-size: 0.8em; }
 #sidebar button .icon { fill: #83868a; width: 20px; height: 20px; padding: 2px; }
 #sidebar button:hover .icon { fill: white; }

@@ -40,7 +40,7 @@ var WIDE = {
 				this.value = "";
 				return;
 			}
-			else if(e.keyCode == 9 && WIDE.visible_file) //tab
+			else if(e.keyCode == 27 && WIDE.visible_file) //ESC
 			{
 				WIDE.visible_file.editor.focus();
 				e.preventDefault();
@@ -307,7 +307,8 @@ var WIDE = {
 		this.showCodeEditor( file_info );
 
 		file_info.file_element.classList.add("selected");
-		this.editor_header.innerHTML = "<span class='filename'>" + file_info.name + "</span><span class='close'>&#10005;</span>";
+		var filename_pretty = filename.split("/").join("<span class='slash'>/</span>");
+		this.editor_header.innerHTML = "<span class='filename'>" + filename_pretty + "</span><span class='close'>&#10005;</span>";
 		this.editor_header.querySelector(".close").addEventListener("click",function(e){
 			WIDE.close();
 		});
@@ -739,7 +740,7 @@ var WIDE = {
 				if(filename)
 				{
 					WIDE.toggleFiles();
-					WIDE.create(filename,"",true);
+					WIDE.create( WIDE.cleanPath(folder + "/" + filename),"",true);
 				}
 				setTimeout(function(){ element.innerHTML = new_file_text; },1);
 			});
