@@ -10,11 +10,11 @@ It allows to open several files, to browser remote folders, and the privileges a
 
 - Cool text editor with nice syntax highlighting (uses monaco-editor, the editor from VSCode).
 - Load/Save remote files 
-- Browser server files
-- Saves the session (restores the state when opening the editor again)
+- Browse server files easily and fast
+- Saves/Restores the session (restores the last open files when reopening the editor)
 - Console to launch commands (easy to add new ones) or to visualize logs
 - Allows to "execute" the project (and see the result in the editor console)
-- Very simple, only three files in total (html,js,php), does not use any build script nor ES6 features.
+- Very simple and light-weight, only three files in total (html,js,php), does not use any build script.
 - Easy to install (does not require launching any daemon or having to configure a database).
 - Allows to work with big files
 - Supports unix-like commands (cd,ls,open) in the console with autocompletion according to the current folder in the server
@@ -22,7 +22,7 @@ It allows to open several files, to browser remote folders, and the privileges a
 ## Keys
 
 - ```Control + O```: open console
-- ```Control + Enter```: execute js
+- ```Control + Enter```: execute current file
 - ```Control + Q```: go to console bar
 - ```Control + S```: save
 - ```Shift + Control + 1-9```: switch to open file
@@ -34,6 +34,8 @@ It allows to open several files, to browser remote folders, and the privileges a
 - ```save```: save file to server
 - ```new```: create a file locally
 - ```delete```: delete file in the server
+
+and unix like commands like ```cd```,```ls```
 
 ## Security
 
