@@ -19,7 +19,7 @@
     //use keys to access project
    	if( !isset($_REQUEST["key"]) )
 		die('{"status":-1, "msg":"key missing"}');
-    $key = $_REQUEST["key"];
+    $key = md5( $_REQUEST["key"] ); //use an md5 so keys are not visible. not salted though...
    	if( !isset( $projects[ $key ]) )
 		die('{"status":-1, "msg":"wrong key"}');
     $project = $projects[ $key ];
