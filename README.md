@@ -19,11 +19,11 @@ It allows to open several files, to browser remote folders, and the privileges a
 
 ## Keys
 
-- Control + O: open console
-- Control + Enter: execute js
-- Control + Q: go to console bar
-- Control + S: save
-- Shift + Control + 1-9: switch to open file
+- ```Control + O```: open console
+- ```Control + Enter```: execute js
+- ```Control + Q```: go to console bar
+- ```Control + S```: save
+- ```Shift + Control + 1-9```: switch to open file
 
 ## Commands
 
