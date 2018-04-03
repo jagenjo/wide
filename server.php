@@ -5,6 +5,8 @@
 	$root_path = "./";
 	$allow_edit_php = true;
 	$ignore_types = Array("image"=>true,"audio"=>true,"video"=>true);
+	$use_md5 = true; //set to false if your wide_config.json uses keys without offuscating them in md5
+	$md5_salt = ""; //change this string if you have salted the keys with md5(salt + key)
 
 	//load config.json
 	$config_path = "/home/wide_config.json"; //CHANGE THIS TO ADD YOUR OWN CONFIG FOLDER
@@ -19,7 +21,9 @@
     //use keys to access project
    	if( !isset($_REQUEST["key"]) )
 		die('{"status":-1, "msg":"key missing"}');
-    $key = md5( $_REQUEST["key"] ); //use an md5 so keys are not visible. not salted though...
+    $key = $_REQUEST["key"];
+	if($use_md5)  
+	    $key = md5( $md5_salt . $key ); //use an md5 so keys are not visible. not salted though...
    	if( !isset( $projects[ $key ]) )
 		die('{"status":-1, "msg":"wrong key"}');
     $project = $projects[ $key ];
