@@ -20,20 +20,22 @@ It allows to open several files, to browser remote folders, and the privileges a
 
 ## Security
 
-The way it grants users access to the files in the server is by using keys that grant you access to specific server folders.
-This means that if a malicious user obtains the key to the server, he could not only store files in the server but also execute malicious code, which is quite dangerous.
+The way it allows users to access files in the server is by using keys (tokens) that grant you access to specific server folders.
+This means that if a malicious user obtains a key, he could not only store files in the server but also execute malicious code, which is quite dangerous.
 
 Keys are stored in a config file called ```wide_config.json``` that contains keys associated to folders. This file should never be accessible through HTTP, otherwise the keys will be public. We recommend to store the config in ```/home/your_username```.
 
-The first time using the editor in a browser you must set the key using the lower console bar, and it is stored in localStorage so you do not need to type it everytime, but it is stored in plain text (so anyone being able to access the computer could extract it).
+The first time using the editor in a browser you must set the key (using the lower console bar or the key input), and it is stored in localStorage so you do not need to type it everytime, but it is stored in plain text (so anyone being able to access the computer could extract it).
 
-When accessing the server (load file, store, browse) it sends the key in the request header, and the server checks if the key matches any of the keys in its project list (configured in the ```wide_config.json```). If the server has the use_md5 feature enabled, it will hash first the key using md5 and then compare it with the one in the config file.
+When accessing the server (load file, store, browse) it sends the key in the request header (in plain text, so always use HTTPS), and the server checks if the key matches any of the keys in its project list (configured in the ```wide_config.json```). If the server has the ```use_md5``` feature enabled, it will hash first the key using md5 and then compare it with the one in the config file.
 
-This is a layer of security that helps in case the config file is accessed by a malicious user, but it could still be easily hacked using an attack by dictionary, so **do not use wide.js if your code is very sensitive to people trying to hack you**.
+This is a layer of security that helps in case the config file is accessed by a malicious user, but it could still be easily hacked using an attack by dictionary.
+
+So it is safe but not perfect, so my recommendation is **do not use wide.js if your code is very sensitive to people trying to hack you**, unless you are aware of the consequences.
 
 ## Installation
 
-Copy all repository files to a folder in your host accessible from HTTP.
+Copy all repository files to a folder in your host accessible from HTTPS.
 
 Create the ```wide_config.json``` in a folder **that is not accessible through HTTP**, like ```/home/``` or ```/home/YOUR_USERNAME```. If the ```wide_config.json``` is accessible through HTTP people will be able to see your keys (although if they are in md5 it still requires some work to get the key) and have access to execute malicious code in your host, so you will have a serious security risk in your server, be careful.
 
