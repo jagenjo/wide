@@ -20,11 +20,12 @@ It allows to open several files, to browser remote folders, and the privileges a
 
 ## Security
 
-The way it grants access to the files in the server is by using keys that grant you access to server folders.
+The way it grants users access to the files in the server is by using keys that grant you access to specific server folders.
+This means that if a malicious user obtains the key to the server, he could not only store files in the server but also execute malicious code, which is quite dangerous.
 
-The server owner creates a config file ```wide_config.json``` that contains keys associated to some server folders.
+Keys are stored in a config file called ```wide_config.json``` that contains keys associated to folders. This file should never be accessible through HTTP, otherwise the keys will be public. We recommend to store the config in ```/home/your_username```.
 
-The first time using the editor in a browser you must set the key using the lower console bar, and it is stored in localStorage (not hashed though).
+The first time using the editor in a browser you must set the key using the lower console bar, and it is stored in localStorage so you do not need to type it everytime, but it is stored in plain text (so anyone being able to access the computer could extract it).
 
 When accessing the server (load file, store, browse) it sends the key in the request header, and the server checks if the key matches any of the keys in its project list (configured in the ```wide_config.json```). If the server has the use_md5 feature enabled, it will hash first the key using md5 and then compare it with the one in the config file.
 
