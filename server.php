@@ -1,10 +1,14 @@
 <?php
 	//CODER by Javi Agenjo (@tamat) 2018
-	header('Content-Type: application/json');
+
+    header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+    header("Cache-Control: post-check=0, pre-check=0", false);
+    header("Pragma: no-cache");
+	if(!isset($_REQUEST["action"]) || $_REQUEST["action"] != "load")
+		header('Content-Type: application/javascript');
 
 	$root_path = "./";
 	$allow_edit_php = true;
-	$ignore_types = Array("image"=>true,"audio"=>true,"video"=>true);
 	$use_md5 = true; //set to false if your wide_config.json uses keys without offuscating them in md5
 	$md5_salt = ""; //change this string if you have salted the keys with md5(salt + key)
 
@@ -35,36 +39,35 @@
 	if(!isset($_REQUEST["action"]))
 		die('{"status":-1, "msg":"action missing"}');
 
+	$debug = Array();
+
 	$action = $_REQUEST["action"];
 
 	if( $action == "load" )
 	{
 		$filename = $_REQUEST["filename"];
 		if( !$allow_edit_php && strpos($filename,".php") != FALSE )
+		{
+			header('Content-Type: application/javascript');
 			die('{"status":-1, "msg":"cannot read serverside files"}');
+		}
 		$fullpath = $root_path. "/" . $filename;
 
 		if( !file_exists($fullpath) )
-			die('{"status":-1, "msg":"file not found"}');
-		$type = mime_content_type($fullpath);
-
-		$result = array();
-		$result["type"] = $type;
-		$types = explode("/",$type);
-
-		if( $ignore_types[ $types[0] ] == true )
 		{
-			$result["content"] = "";
-			$result["is_binary"] = true;
+			header('Content-Type: application/javascript');
+			die('{"status":-1, "msg":"file not found"}');
 		}
-		else
-			$result["content"] = file_get_contents($fullpath);
-		$result["status"] = 1;
-		$result["filename"] = $filename;
-		die( json_encode($result) );
+		$type = mime_content_type($fullpath);
+		$fp = fopen($fullpath, 'rb');
+		header('Content-Type: ' . $type );
+		header("Content-Length: " . filesize($fullpath));
+		fpassthru($fp);
+		exit;
 	}
 	else if( $action == "save" )
 	{
+
 		if(!isset($_REQUEST["filename"]) || !isset($_REQUEST["content"]))
 			die('{"status":-1,"msg":"params missing"}');
 
@@ -142,6 +145,20 @@
 		$result["msg"] = "file deleted";
 		die( json_encode($result) );
 	}
+	else if( $action == "autocomplete" )
+	{
+		if( !isset($_REQUEST["filename"]) )
+			die('{"status":-1,"msg":"params missing"}');
+		if( strpos( $filename, ".." ) != FALSE )
+			die('{"status":-1,"msg":"invalid filename"}');
+        $filename = $_REQUEST["filename"];
+        $autocompleted = autocomplete( $filename, $root_path );
+		$result = array();
+		$result["status"] = 1;
+		$result["msg"] = "file autocompleted";
+        $result["data"] = $autocompleted;
+		die( json_encode($result) );            
+    }
 	else if( $action == "list" )
 	{
 		if( !isset($_REQUEST["folder"]) )
@@ -175,4 +192,27 @@
 	}
 	else
 		die('{"status":-1,"msg","unknown command"}');
+
+    function autocomplete( $filename, $root_path )
+    {
+		global $debug;
+        $tokens = explode("/",$filename);
+        $num = count($tokens);
+        $folder = implode( "/", array_slice( $tokens, 0, $num - 1 ) );
+        $start = $tokens[ $num - 1 ];
+        $files = scandir( $root_path . "/" . $folder );
+        $valid = Array();
+        foreach ($files as $file) {
+            if( strpos($file,$start) === 0 )
+                $valid[] = $file;
+        }
+        return $valid;
+    }
+
+
+
+
+
+
+
 ?>

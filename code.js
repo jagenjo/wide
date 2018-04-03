@@ -40,6 +40,13 @@ var WIDE = {
 				this.value = "";
 				return;
 			}
+			else if(e.keyCode == 9) //TAB
+			{
+				var last = this.value.split(" ").pop();
+				WIDE.autocomplete( last, function(a,b){ input.value += b; });
+				e.preventDefault();
+				return;
+			}
 			else if(e.keyCode == 27 && WIDE.visible_file) //ESC
 			{
 				WIDE.visible_file.editor.focus();
@@ -173,6 +180,8 @@ var WIDE = {
             return;
         }
 
+		console.log("loading file: " + filename );
+
 		var form = new FormData();
 		form.append("action","load");
 		form.append("filename",filename);
@@ -185,24 +194,12 @@ var WIDE = {
 		var info = { method: 'POST',  body: form, headers: headers };
 
 		fetch( this.server_url, info).then(function(resp){
+			var headers = headersToObject( resp.headers );
 			return resp.text();
 		}).then( function(data){
-			var r = JSON.parse(data);
-			if(r.status == 1)
-			{
-				if(r.is_binary)
-					console.error("binary file");
-				else
-					WIDE.onFileLoaded( filename, r.content );
-			}
-			else
-			{
-				WIDE.close( filename );
-				console.error( r.msg );
-				return;
-			}
+			var file_info = WIDE.onFileLoaded( filename, data );
 			if(callback)
-				callback(r);
+				callback( filename, file_info );
 			if( open )
 				WIDE.open( filename );
 		});
@@ -385,7 +382,7 @@ var WIDE = {
 
 	list: function( folder )
 	{
-		folder = folder || this.current_folder;
+		folder = this.cleanPath( folder || this.current_folder );
 
 		queryforEach("#sidebar .header button",function(a){ a.classList.remove("selected"); });
 		document.querySelector(".list-files-button").classList.add("selected");
@@ -422,6 +419,39 @@ var WIDE = {
 				console.error( r.msg );
 		});
 	},
+
+    autocomplete: function( filename, on_complete, folder )
+    {
+        folder = folder || this.current_folder;
+
+        if(!this.key)
+            return;
+
+        var fullpath = this.cleanPath( folder + "/" + filename );
+
+		var form = new FormData();
+		form.append("action","autocomplete");
+		form.append("filename", fullpath );
+        form.append("key", this.key );
+		var info = { method: 'POST', body: form };
+
+		fetch( this.server_url, info ).then(function(resp){
+			return resp.text();
+		}).then( function(data){
+			var r = JSON.parse(data);
+			if(r.status == 1)
+			{
+				var shared = "";
+				if( r.data.length == 1 )
+					shared = r.data[0];
+				else if( r.data.length > 1 )
+					shared = sharedStart( r.data );
+				on_complete( r.data, shared.substr( filename.length ) );
+			}
+			else
+				console.error( r.msg );
+		});
+    },
 
     serialize: function()
     {
@@ -653,7 +683,7 @@ var WIDE = {
 	{
 		var file_info = this.files_by_name[ filename ];
 		if(!file_info)
-            return; //a file arrives but is no longer in the editor
+            return null; //a file arrives but is no longer in the editor
 
 		if(!file_info.file_element)
 			throw("file entry without element?");
@@ -662,13 +692,15 @@ var WIDE = {
         	file_info._exist = true;
 		if(this.current_file && this.current_file.name == filename)
 			file_info.editor.setValue(content);
+		return file_info;
 	},
 
 	onShowFolderFiles: function( folder, files, project )
 	{
 		var container = document.querySelector("#folder-files");
-		container.innerHTML = "<div class='project-title'>"+(project || "")+"<span class='close' title='remove key'>✕</span></div>";
-		container.querySelector(".close").addEventListener("click",function(e){	WIDE.setKey(""); WIDE.list(); });
+		container.innerHTML = "<div class='project-title'>"+(project || "")+"<span class='buttons'><span class='trash' title='remove key'><svg class='icon'><use xlink:href='#si-bootstrap-trash'/></svg></span><span class='close' title='close list'>✕</span></span></div>";
+		container.querySelector(".trash").addEventListener("click",function(e){	if(confirm("Are you sure you want to remove the key to this project?")) WIDE.setKey(""); WIDE.list(); });
+		container.querySelector(".close").addEventListener("click",function(e){	WIDE.toggleFiles(); });
 		container.classList.remove("loading");
 		folder = this.cleanPath( folder );
 		this.current_folder = folder;
@@ -824,14 +856,15 @@ var WIDE = {
 };
 
 //commands
-WIDE.commands.load = function( cmd, t ) { WIDE.load( t[1], null, true );} 
+WIDE.commands.open = WIDE.commands.load = function( cmd, t ) { WIDE.load( WIDE.current_folder + "/" + t[1], null, true );} 
 WIDE.commands.save = function( cmd, t ) { WIDE.save(); }
 WIDE.commands.new = function( cmd, t ) { WIDE.create(t[1],"",true); }
 WIDE.commands.delete = function( cmd, t ) { WIDE.delete(t[1]); }
 WIDE.commands.close  = function( cmd, t ) { WIDE.close(t[1]); }
 WIDE.commands.reset  = function( cmd, t ) { WIDE.reset(); }
 WIDE.commands.execute = function( cmd, t ) { WIDE.execute(); }
-WIDE.commands.list = function( cmd, t ) { WIDE.list(t[1]); }
+WIDE.commands.ls = WIDE.commands.list = function( cmd, t ) { WIDE.list(t[1]); }
+WIDE.commands.cd = function( cmd, t ) { WIDE.list( WIDE.current_folder + "/" + t[1]); }
 WIDE.commands.files = function( cmd, t ) { WIDE.toggleFiles(); }
 WIDE.commands.reload = function( cmd, t ) { for(var i in WIDE.files) WIDE.load( WIDE.files[i].name ); }
 WIDE.commands.key = function( cmd, t ) { WIDE.setKey(t.slice(1).join(" ")); }
@@ -849,6 +882,8 @@ WIDE.buttons.push({ name:"execute code", icon:"bootstrap-play", command: "execut
 
 //helpers
 function queryforEach( selector,callback ) { var list = document.querySelectorAll(selector); for(var i = 0;i < list.length; ++i) callback( list[i] ); }
+function sharedStart(array){ var A= array.concat().sort(), a1= A[0], a2= A[A.length-1], L= a1.length, i= 0; while(i<L && a1.charAt(i)=== a2.charAt(i)) i++; return a1.substring(0, i); }
+function headersToObject(headers) { var array = Array.from( headers.entries() ); var r = {}; for(var i = 0; i < array.length; ++i) r[ array[i][0] ] = array[i][1]; return r; }
 
 //redirect console
 console._log = console.log;

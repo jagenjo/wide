@@ -58,7 +58,7 @@ button:focus, input:focus { outline: 0; }
 .filename.folder { font-weight: bold; color: #5abd66; }
 .filename.parent-folder { font-weight: bold; color: #729ad8; }
 .filename.new-file { opacity: 0.5; padding-left: 8px !important; margin-bottom: 10px; }
-.filename.blocked { opacity: 0.25; }
+.filename.blocked { opacity: 0.25; cursor: not-allowed !important;}
 .filename.new-file input { width: 100%; background-color: black; color: white; border: 0; padding: 4px; }
 #code-header .filename { color: #AAA;}
 #code-header .filename .slash { color: #f242f2; margin: 0px 2px; }
@@ -69,7 +69,8 @@ button:focus, input:focus { outline: 0; }
 #sidebar button.selected { background-color: #444; }
 #sidebar button.selected .icon { fill: #DDD; }
 #sidebar .project-title { background-color: #404040; color: #b5b5b5; padding: 4px; padding-left: 10px; width: 100%; margin-bottom: 4px; }
-#sidebar .project-title .close { float: right; margin-right: 4px; cursor: pointer; }
+#sidebar .project-title .buttons { float: right; }
+#sidebar .project-title .buttons span { margin-right: 4px; cursor: pointer; }
 .saving { background-color: white !important; color: black !important; }
 
 #bottom { position: absolute; overflow: hidden; bottom: 0; width: 100%; height: 30px; background-color: black; color: #AAA; }
