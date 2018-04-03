@@ -16,6 +16,8 @@ It allows to open several files, to browser remote folders, and the privileges a
 - Allows to "execute" the project (and see the result in the editor console)
 - Very simple, only three files in total (html,js,php), does not use any build script nor ES6 features.
 - Easy to install (does not require launching any daemon or having to configure a database).
+- Allows to work with big files
+- Supports unix-like commands (cd,ls,open) in the console with autocompletion according to the current folder in the server
 
 ## Keys
 
