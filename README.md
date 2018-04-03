@@ -83,7 +83,9 @@ By default the keys in the config should be hashed using MD5, this way if the ``
 
 You can disable the md5 in the server by changing the variable use_md5 to false ```$use_md5 = false;``` although I do not recommend it.
 
-Once installed, you access the website and set the key typing at the bottom console bar:
+Once the ```wide_config.json``` is created, you must configure the ```server.php``` to point to that file and be sure that the file is readable by your http server. To be sure set the file privileges to read-write: ```sudo chmod ug+rw wide_config.json``` and the file group to www-data: ```chown :www-data wide_config.json```
+
+Now if everything is properly installed you can access the website and set the key typing at the bottom console bar:
 ```
 key PROJECT_KEY
 ```
