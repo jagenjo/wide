@@ -33,6 +33,7 @@ var WIDE = {
 
 		var input = this.console_input = document.querySelector("#bottom input");
 		input.addEventListener("keydown",function(e){
+			//console.log(e.code,e.ctrlKey);
 			if(e.keyCode == 13)
 			{
 				WIDE.onCommand( this.value );
@@ -47,7 +48,7 @@ var WIDE = {
 				e.preventDefault();
 				return;
 			}
-			else if(e.keyCode == 27 && WIDE.visible_file) //ESC
+			else if( e.keyCode == 27 && WIDE.visible_file) //ESC 
 			{
 				WIDE.visible_file.editor.focus();
 				e.preventDefault();
@@ -56,7 +57,7 @@ var WIDE = {
                 this.style.opacity = 0;
             else
                 this.style.opacity = 1;
-		});
+		},true);
 
 		document.addEventListener("keydown", this.onKey.bind(this), true );
 
@@ -380,7 +381,7 @@ var WIDE = {
         document.querySelector("#code-editor").innerHTML = "";
     },
 
-	list: function( folder )
+	list: function( folder, skip_log )
 	{
 		folder = this.cleanPath( folder || this.current_folder );
 
@@ -414,7 +415,7 @@ var WIDE = {
 		}).then( function(data){
 			var r = JSON.parse(data);
 			if(r.status == 1)
-                WIDE.onShowFolderFiles( r.folder, r.files, r.project );
+                WIDE.onShowFolderFiles( r.folder, r.files, r.project, skip_log );
 			else
 				console.error( r.msg );
 		});
@@ -581,7 +582,7 @@ var WIDE = {
 	onCommand: function( cmd, skip_console )
 	{
         if(!skip_console)
-		    console.log( "> " + cmd );
+		    this.toConsole( "] " + cmd, "log me" );
         if(cmd[0] == "=") //eval JS
         {
             var r = eval(cmd.substr(1));
@@ -695,7 +696,7 @@ var WIDE = {
 		return file_info;
 	},
 
-	onShowFolderFiles: function( folder, files, project )
+	onShowFolderFiles: function( folder, files, project, skip_log )
 	{
 		var container = document.querySelector("#folder-files");
 		container.innerHTML = "<div class='project-title'>"+(project || "")+"<span class='buttons'><span class='trash' title='remove key'><svg class='icon'><use xlink:href='#si-bootstrap-trash'/></svg></span><span class='close' title='close list'>✕</span></span></div>";
@@ -718,6 +719,8 @@ var WIDE = {
 			var file = files_and_folders[i];
 			if(!file.name)
 				continue;
+			if( !file.is_parent && !skip_log )
+				this.toConsole( file.name + ( !file.is_dir ? " " + file.size + "b" : "/"), file.is_dir ? "folder" : "file" );
 			var fullpath = this.cleanPath( file.fullpath || folder + "/" + file.name );
 			var element = document.createElement("div");
 			element.className = "filename";
@@ -859,12 +862,12 @@ var WIDE = {
 WIDE.commands.open = WIDE.commands.load = function( cmd, t ) { WIDE.load( WIDE.current_folder + "/" + t[1], null, true );} 
 WIDE.commands.save = function( cmd, t ) { WIDE.save(); }
 WIDE.commands.new = function( cmd, t ) { WIDE.create(t[1],"",true); }
-WIDE.commands.delete = function( cmd, t ) { WIDE.delete(t[1]); }
+WIDE.commands.rm = WIDE.commands.delete = function( cmd, t ) { WIDE.delete( WIDE.current_folder + "/" + t[1]); }
+WIDE.commands.ls = WIDE.commands.list = function( cmd, t ) { WIDE.list(t[1]); }
+WIDE.commands.cd = function( cmd, t ) { var folder = WIDE.current_folder + (t.length > 1 ? "/" + t[1] : ""); WIDE.list( folder, true ); WIDE.toConsole(WIDE.cleanPath(folder),"folder"); }
 WIDE.commands.close  = function( cmd, t ) { WIDE.close(t[1]); }
 WIDE.commands.reset  = function( cmd, t ) { WIDE.reset(); }
 WIDE.commands.execute = function( cmd, t ) { WIDE.execute(); }
-WIDE.commands.ls = WIDE.commands.list = function( cmd, t ) { WIDE.list(t[1]); }
-WIDE.commands.cd = function( cmd, t ) { WIDE.list( WIDE.current_folder + "/" + t[1]); }
 WIDE.commands.files = function( cmd, t ) { WIDE.toggleFiles(); }
 WIDE.commands.reload = function( cmd, t ) { for(var i in WIDE.files) WIDE.load( WIDE.files[i].name ); }
 WIDE.commands.key = function( cmd, t ) { WIDE.setKey(t.slice(1).join(" ")); }

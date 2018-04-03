@@ -78,13 +78,15 @@ button:focus, input:focus { outline: 0; }
 #bottom .prompt { width: 14px; display: inline-block; }
 #bottom input { background-color: black; width: calc( 100% - 14px ); height: 100%; border: 0; color: white; font-size: 16px; font-family: "Courier New";}
 
-#console { width: 100%; background-color: black; color: #EEE; }
+#console { width: 100%; background-color: black; color: #EEE; overflow: auto; }
 #container.show_console #top { height: 50%; }
 #container.show_console #console { display: block !important; height: calc( 100% - 30px ); }
 #container.show_console #bottom { height: 50%; }
-#console .msg { color: #eee; padding-left: 5px; }
+#console .msg { color: #888; padding-left: 5px; }
+#console .msg.me { color: white; padding-left: 5px; }
 #console .msg.warn { color: #ffde3a; }
 #console .msg.error { color: #f85d5d; }
+#console .msg.folder { color: #5abd66; }
 </style>
 
 </head>

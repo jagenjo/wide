@@ -58,16 +58,14 @@
 			header('Content-Type: application/javascript');
 			die('{"status":-1, "msg":"file not found"}');
 		}
-		$type = mime_content_type($fullpath);
 		$fp = fopen($fullpath, 'rb');
-		header('Content-Type: ' . $type );
+		header("Content-Type: " . mime_content_type($fullpath) );
 		header("Content-Length: " . filesize($fullpath));
 		fpassthru($fp);
 		exit;
 	}
 	else if( $action == "save" )
 	{
-
 		if(!isset($_REQUEST["filename"]) || !isset($_REQUEST["content"]))
 			die('{"status":-1,"msg":"params missing"}');
 
