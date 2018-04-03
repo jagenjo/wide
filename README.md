@@ -23,7 +23,7 @@ It allows to open several files, to browser remote folders, and the privileges a
 The way it grants access to the files in the server is by using a key to have access to a server folder.
 The first time using the editor you must set the key using the lower console bar, and it is stored in localStorage.
 
-When accessing the server (load file, store, browse) it sends the key in the request header, and the server checks if the key matches any of the keys in its project list (configured in the wide_config.json). 
+When accessing the server (load file, store, browse) it sends the key in the request header, and the server checks if the key matches any of the keys in its project list (configured in the wide_config.json). Keys are passed through MD5 to 
 
 This is a layer of security but it could be easily hacked, so **do not use wide.js if your code is very sensitive to people trying to hack you**.
 
@@ -53,13 +53,22 @@ The config should be like this:
 ```
 
 Where ```PROJECT_KEY``` is the key that grants you access to that folder (and all its subfolders).
+By default the keys in the config should be hashed using MD5 in case the wide_config.json is read by an intruder, it still has a layer of security. To apply MD5 to your keys you can use: http://www.md5.cz/
 
-Once installed, you access the website and set the key typing in the bottom bar:
+You can disable the md5 in the server by changing the variable use_md5 to false ```$use_md5 = false;```
+
+Once installed, you access the website and set the key typing at the bottom console bar:
 ```
 key PROJECT_KEY
 ```
 
+**The PROJECT_KEY is as it was before hashing it with md5.**
+
+## Browse files
+
 You can use the buttons on top of the sidebar to browser server files.
+
+You cannot get into a level above the folder specified in the config.
 
 ## Contact
 
