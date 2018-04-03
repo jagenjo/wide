@@ -3,6 +3,12 @@
 
 //main class
 var WIDE = {
+
+    //config
+    persistent_session: true, //set to false if you do not want the keys to be stored in localStorage
+    server_url: "server.php", //change it if it is hosted in a different folder than the index.html
+
+    //globals
 	commands: {},
 	files: [],
 	files_by_name: {},
@@ -13,7 +19,6 @@ var WIDE = {
     key: "",
 	buttons: [],
     console_open: false,
-    server_url: "server.php", //change it if it is hosted in a different folder that the index.html
 
 	init: function()
 	{
@@ -35,13 +40,18 @@ var WIDE = {
 				this.value = "";
 				return;
 			}
-            if(this.value.substr(0,4) == "key ") //hide key
+			else if(e.keyCode == 9 && WIDE.visible_file) //tab
+			{
+				WIDE.visible_file.editor.focus();
+				e.preventDefault();
+			}
+            if(this.value.substr(0,4) == "key " || this.value.substr(0,8) == "tempkey ") //hide key
                 this.style.opacity = 0;
             else
                 this.style.opacity = 1;
 		});
 
-		document.addEventListener("keydown", this.onKey.bind(this) );
+		document.addEventListener("keydown", this.onKey.bind(this), true );
 
 		window.onresize = this.onResize.bind(this);
         window.onbeforeunload = function()
@@ -157,6 +167,12 @@ var WIDE = {
 	{
 		var file_info = this.onFileAdded( filename );
 
+        if(!this.key)
+        {
+            console.error("file cannot be loaded, no key set. Type 'key YOUKEY' in the command bar to have access to the server.");
+            return;
+        }
+
 		var form = new FormData();
 		form.append("action","load");
 		form.append("filename",filename);
@@ -199,6 +215,12 @@ var WIDE = {
 		if(!WIDE.current_file)
 			return;
 
+        if(!this.key)
+        {
+            console.error("file cannot be saved, no key set");
+            return;
+        }            
+
 		var file_info = WIDE.current_file;
 		file_info.content = file_info.editor.getValue();
 
@@ -232,6 +254,12 @@ var WIDE = {
 	{
 		if(!filename)
 			return;
+
+        if(!this.key)
+        {
+            console.error("file cannot be deleted, no key set");
+            return;
+        }              
 
 		var file_info = WIDE.files_by_name[filename];
 		if(!file_info)
@@ -277,13 +305,6 @@ var WIDE = {
 		}
 		this.current_file = file_info;
 		this.showCodeEditor( file_info );
-
-		/*
-		this.editor.setValue( file_info.content );
-        if( file_info.cursor )
-            this.editor.setPosition( file_info.cursor );
-		this.editor.setScrollTop( file_info.scrollTop || 0);
-		*/
 
 		file_info.file_element.classList.add("selected");
 		this.editor_header.innerHTML = "<span class='filename'>" + file_info.name + "</span><span class='close'>&#10005;</span>";
@@ -374,7 +395,12 @@ var WIDE = {
         if(!this.key)
         {
         	var container = document.querySelector("#folder-files");
-            container.innerHTML = "cannot access server. No key set";
+            container.innerHTML = "<p>Cannot access server, no key found.</p><p>Type your key to have access to the server.</p><p><input placeHolder='type key' type='password'/></p>";
+			container.querySelector("input").addEventListener("keydown",function(e){
+				if(e.keyCode != 13)
+					return;
+				WIDE.setKey(this.value);	
+			});
             return;
         }
 
@@ -405,7 +431,7 @@ var WIDE = {
 		}
 
         var o = { 
-			key: this.key, 
+			key: this.persistent_session ? this.key : null, 
 			files: [],
 			current_folder: this.current_folder
 		};
@@ -432,8 +458,6 @@ var WIDE = {
     {
 		if(o.key)
 			this.key = o.key;
-        else
-            console.log("no key found in session, type: key YOURKEY");
         
 		if(o.current_folder)
 			this.current_folder = o.current_folder;
@@ -443,10 +467,12 @@ var WIDE = {
             {
                 var file_data = o.files[i];
 				var file_info;
-				if( file_data.content )
+				if( file_data.content != null )
 					file_info = this.create( file_data.name, file_data.content );
-				else
+				else 
 					file_info = this.load( file_data.name );
+				if(!file_info) //no key
+					continue;
 				for(var j in file_data)
 					file_info[j] = file_data[j];
             }
@@ -507,8 +533,17 @@ var WIDE = {
 		var code = this.current_file.editor.getValue();
 		var func = new Function(code);
 		var r = func.call(window);
-        if(r === undefined)
-            console.log("--------------------------");
+	},
+
+	setKey: function( key, temporal )
+	{
+		this.key = key;
+		WIDE.commands.clear();
+		if(this.key)
+			this.list();
+		if(temporal)
+			WIDE.persistent_session = false;
+		console.log("key assigned");
 	},
 
     //events
@@ -538,24 +573,25 @@ var WIDE = {
 	{
 		//console.log(e);
 		if( e.code == "KeyS" && e.ctrlKey )
-		{
-			e.preventDefault();
 			this.save();
-		}
-		if( (e.code == "KeyP" || e.code == "Enter") && e.ctrlKey )
-		{
-			e.preventDefault();
+		else if( e.code == "KeyO" && e.ctrlKey )
+			this.toggleConsole();
+		else if( e.code == "KeyQ" && e.ctrlKey )
+            document.querySelector("#bottom input").focus();
+		else if( (e.code == "KeyP" || e.code == "Enter") && e.ctrlKey )
 			this.execute();
-		}
-		if( e.keyCode >= 49 && e.keyCode <= 58 && e.altKey && e.ctrlKey )
+		else if( e.keyCode >= 49 && e.keyCode <= 58 && e.altKey && e.ctrlKey )
         {
             var file_info = this.files[e.keyCode - 49];
             if(file_info)
                 this.open( file_info.name );
-            e.preventDefault();
         }
-        //else if( e.keyCode == 27 )
-        //    document.querySelector("#bottom input").focus();
+		else
+			return true; //release the event so monaco can process it
+
+		e.preventDefault();
+		e.stopPropagation();
+		e.stopImmediatePropagation();
 	},
 
     onEditorKey: function(e)
@@ -630,7 +666,8 @@ var WIDE = {
 	onShowFolderFiles: function( folder, files, project )
 	{
 		var container = document.querySelector("#folder-files");
-		container.innerHTML = "<div class='project-title'>"+(project || "")+"</div>";
+		container.innerHTML = "<div class='project-title'>"+(project || "")+"<span class='close' title='remove key'>✕</span></div>";
+		container.querySelector(".close").addEventListener("click",function(e){	WIDE.setKey(""); WIDE.list(); });
 		container.classList.remove("loading");
 		folder = this.cleanPath( folder );
 		this.current_folder = folder;
@@ -796,9 +833,10 @@ WIDE.commands.execute = function( cmd, t ) { WIDE.execute(); }
 WIDE.commands.list = function( cmd, t ) { WIDE.list(t[1]); }
 WIDE.commands.files = function( cmd, t ) { WIDE.toggleFiles(); }
 WIDE.commands.reload = function( cmd, t ) { for(var i in WIDE.files) WIDE.load( WIDE.files[i].name ); }
-WIDE.commands.key = function( cmd, t ) { WIDE.key = t.slice(1).join(" "); WIDE.commands.clear(); return "key assigned"; }
+WIDE.commands.key = function( cmd, t ) { WIDE.setKey(t.slice(1).join(" ")); }
+WIDE.commands.tempkey = function( cmd, t ) { WIDE.setKey(t.slice(1).join(" "),false); }
 WIDE.commands.console = function( cmd, t ) { WIDE.toggleConsole(); }
-WIDE.commands.clear = function( cmd, t ) { WIDE.console.element.innerHTML = ""; }
+WIDE.commands.clear = function( cmd, t ) { WIDE.console_element.innerHTML = ""; }
 
 //buttons
 WIDE.buttons.push({ name:"new", icon:"elusive-file-new", command: "new"});
@@ -815,9 +853,11 @@ function queryforEach( selector,callback ) { var list = document.querySelectorAl
 console._log = console.log;
 console._warn = console.warn;
 console._error = console.error;
+console._clear = console.clear;
 console.log = function(){ console._log.apply(console,arguments); WIDE.toConsole( Array.prototype.slice.call(arguments).map(function(a){ return String(a); }).join(","),"log");  };
 console.warn = function(){ console._warn.apply(console,arguments); WIDE.toConsole( Array.prototype.slice.call(arguments).map(function(a){ return String(a); }).join(","),"warn"); };
 console.error = function(){ console._error.apply(console,arguments); WIDE.toConsole( Array.prototype.slice.call(arguments).map(function(a){ return String(a); }).join(","),"error"); };
+console.clear = function(){ console._clear(); WIDE.commands.clear(); };
 
 WIDE.init();
 console.log("wide editor created by Javi Agenjo (@tamat) 2018");
