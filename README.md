@@ -13,10 +13,25 @@ It allows to open several files, to browser remote folders, and the privileges a
 - Browser server files
 - Saves the session (restores the state when opening the editor again)
 - Console to launch commands (easy to add new ones) or to visualize logs
-- Allows to "execute" the project 
+- Allows to "execute" the project (and see the result in the editor console)
 - Very simple, only three files in total (html,js,php), does not use any build script nor ES6 features.
-- Easy to install (does not require launching any daemon or having a configure a database).
+- Easy to install (does not require launching any daemon or having to configure a database).
 
+## Keys
+
+- Control + O: open console
+- Control + Enter: execute js
+- Control + Q: go to console bar
+- Control + S: save
+- Shift + Control + 1-9: switch to open file
+
+## Commands
+
+- ```list```: list files in a given folder
+- ```load```: loads a file from the server
+- ```save```: save file to server
+- ```new```: create a file locally
+- ```delete```: delete file in the server
 
 ## Security
 
