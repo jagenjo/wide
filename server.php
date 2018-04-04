@@ -48,15 +48,15 @@
 		$filename = $_REQUEST["filename"];
 		if( !$allow_edit_php && strpos($filename,".php") != FALSE )
 		{
-			header('Content-Type: application/javascript');
-			die('{"status":-1, "msg":"cannot read serverside files"}');
+			header('HTTP/1.0 403 Forbidden');
+			exit;
 		}
 		$fullpath = $root_path. "/" . $filename;
 
 		if( !file_exists($fullpath) )
 		{
-			header('Content-Type: application/javascript');
-			die('{"status":-1, "msg":"file not found"}');
+			header('HTTP/1.0 404 Not found');
+			exit;
 		}
 		$fp = fopen($fullpath, 'rb');
 		header("Content-Type: " . mime_content_type($fullpath) );
@@ -97,7 +97,26 @@
 		$result["data"] = $project;
 		die( json_encode($result) );
 	}
-	else if( $action == "rename" )
+	else if( $action == "mkdir" )
+	{
+		if(!isset($_REQUEST["folder"]))
+			die('{"status":-1,"msg":"params missing"}');
+		$folder = $_REQUEST["filename"];
+
+		if( strpos( $folder, ".." ) != FALSE )
+			die('{"status":-1,"msg":"invalid folder name"}');
+
+		$fullpath = $root_path. "/" . $folder;
+
+		if (mkdir($fullpath,770) == FALSE )
+			die('{"status":-1,"msg":"cannot create folder, not allowed","debug":"'.$fullpath.'"}');
+
+		$result = array();
+		$result["status"] = 1;
+		$result["msg"] = "folder created";
+		die( json_encode($result) );
+	}
+	else if( $action == "move" )
 	{
 		if(!isset($_REQUEST["filename"]) || !isset($_REQUEST["new_filename"]))
 			die('{"status":-1,"msg":"params missing"}');
@@ -108,17 +127,17 @@
 			die('{"status":-1,"msg":"invalid filename"}');
 
 		if( !$allow_edit_php && ( strpos($filename,".php") != FALSE || strpos($new_filename,".php")) )
-			die('{"status":-1, "msg":"cannot rename serverside files"}');
+			die('{"status":-1, "msg":"cannot move this extensions"}');
 
 		$fullpath = $root_path. "/" . $filename;
 		$new_fullpath = $root_path. "/" . $filename;
 
 		if (rename($fullpath,$new_fullpath) == FALSE )
-			die('{"status":-1,"msg":"cannot rename file, not allowed","debug":"'.$fullpath.'"}');
+			die('{"status":-1,"msg":"cannot move file, not allowed","debug":"'.$fullpath.'"}');
 
 		$result = array();
 		$result["status"] = 1;
-		$result["msg"] = "file renamed";
+		$result["msg"] = "file moved";
 		$result["filename"] = $new_filename;
 		die( json_encode($result) );
 	}
@@ -167,6 +186,9 @@
 			die('{"status":-1,"msg":"invalid folder"}');
 
 		$fullpath = $root_path. "/" . $folder . "/";
+        if( !is_dir($fullpath) )
+			die('{"status":-1,"msg":"folder does not exist"}');
+
 		$files = glob( $fullpath . "*" );
 		$files_final = Array();
 

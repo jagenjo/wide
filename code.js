@@ -29,7 +29,7 @@ var WIDE = {
 			WIDE.onReady();
 		});
 
-        this.editor_header = document.querySelector("#code-header");        
+        this.editor_header = document.querySelector("#code-header");       
 
 		var input = this.console_input = document.querySelector("#bottom input");
 		input.addEventListener("keydown",function(e){
@@ -171,7 +171,7 @@ var WIDE = {
 		return editor;
 	},
 
-	load: function( filename, callback, open )
+	load: function( filename, callback, open, focus )
 	{
 		var file_info = this.onFileAdded( filename );
 
@@ -195,6 +195,8 @@ var WIDE = {
 		var info = { method: 'POST',  body: form, headers: headers };
 
 		fetch( this.server_url, info).then(function(resp){
+			if(resp.status != 200)
+				throw Error(resp.statusText);
 			var headers = headersToObject( resp.headers );
 			return resp.text();
 		}).then( function(data){
@@ -202,7 +204,10 @@ var WIDE = {
 			if(callback)
 				callback( filename, file_info );
 			if( open )
-				WIDE.open( filename );
+				WIDE.open( filename, focus );
+		}).catch(function(err){
+			console.error("file not found: " + file_info.name );
+			WIDE.close( file_info.name );
 		});
 
         return file_info;
@@ -232,7 +237,7 @@ var WIDE = {
         form.append("key", this.key );
 		var info = { method: 'POST', body: form };
 
-        this.editor_header.classList.add("saving");
+        document.querySelector("#code-area").classList.add("saving");
 
 		fetch( this.server_url , info ).then(function(resp){
 			return resp.text(); 
@@ -240,7 +245,7 @@ var WIDE = {
 			var r = JSON.parse(data);
 			if(r.status == 1)
             {
-                WIDE.editor_header.classList.remove("saving");
+                document.querySelector("#code-area").classList.remove("saving");
                 WIDE.onFileSaved( filename );
             }
 			else
@@ -260,9 +265,7 @@ var WIDE = {
         }              
 
 		var file_info = WIDE.files_by_name[filename];
-		if(!file_info)
-			return;
-		if(file_info._exist === false)
+		if(file_info && file_info._exist === false) //local file
 		{
 			this.close( filename );
 			return;
@@ -288,7 +291,40 @@ var WIDE = {
 		});
 	},
 
-	open: function( filename )
+	move: function( filename, new_filename )
+	{
+		if(!filename || !new_filename)
+			return;
+
+        if(!this.key)
+        {
+            console.error("file cannot be moved, no key set");
+            return;
+        }              
+
+		var file_info = WIDE.files_by_name[filename];
+		if(file_info)
+			this.close( filename );
+
+		var form = new FormData();
+		form.append("action","move");
+		form.append("filename",filename);
+		form.append("new_filename", new_filename);
+        form.append("key", this.key );
+		var info = { method: 'POST', body: form };
+
+		fetch( this.server_url, info ).then(function(resp){
+			return resp.text();
+		}).then( function(data){
+			var r = JSON.parse(data);
+			if(r.status == 1)
+                WIDE.list();
+			else
+				console.error( r.msg );
+		});
+	},
+
+	open: function( filename, focus )
 	{
         if(!filename)
             return; 
@@ -298,7 +334,7 @@ var WIDE = {
 		var file_info = this.files_by_name[ filename ];
 		if(!file_info || file_info.content === null)
 		{
-			this.load( filename, null, true );
+			this.load( filename, null, true, focus );
 			return;
 		}
 		this.current_file = file_info;
@@ -319,7 +355,8 @@ var WIDE = {
 			ext = this.extensions_to_language[ext];
         monaco.editor.setModelLanguage( file_info.model, ext );
         
-		file_info.editor.focus();
+        if(focus)
+		    file_info.editor.focus();
 	},
 
     close: function( filename )
@@ -368,7 +405,7 @@ var WIDE = {
         file_info.file_element.classList.add("modifyed");
         file_info._exist = false;
         if(open)
-            this.open(filename);
+            this.open(filename, true);
 		return file_info;
 	},
 
@@ -381,11 +418,11 @@ var WIDE = {
         document.querySelector("#code-editor").innerHTML = "";
     },
 
-	list: function( folder, skip_log )
+	list: function( folder, skip_log, on_complete )
 	{
-		folder = this.cleanPath( folder || this.current_folder );
+		folder = this.processFolder(folder);
 
-		queryforEach("#sidebar .header button",function(a){ a.classList.remove("selected"); });
+		queryforEach("#sidebar .header button.sidebarmode",function(a){ a.classList.remove("selected"); });
 		document.querySelector(".list-files-button").classList.add("selected");
 		document.querySelector("#open-files").style.display = "none";
 		var container = document.querySelector("#folder-files");
@@ -415,7 +452,11 @@ var WIDE = {
 		}).then( function(data){
 			var r = JSON.parse(data);
 			if(r.status == 1)
+            {
                 WIDE.onShowFolderFiles( r.folder, r.files, r.project, skip_log );
+                if(on_complete)
+                    on_complete(r);
+            }
 			else
 				console.error( r.msg );
 		});
@@ -601,6 +642,7 @@ var WIDE = {
             console.log(r);
 	},
 
+    //this is executed before any other onKey event (even inputs or monaco-editor)
 	onKey: function(e)
 	{
 		//console.log(e);
@@ -609,7 +651,12 @@ var WIDE = {
 		else if( e.code == "KeyO" && e.ctrlKey )
 			this.toggleConsole();
 		else if( e.code == "KeyQ" && e.ctrlKey )
-            document.querySelector("#bottom input").focus();
+        {
+            if( document.activeElement == this.console_input )
+                this.current_file.editor.focus();
+            else
+                this.console_input.focus();
+        }
 		else if( (e.code == "KeyP" || e.code == "Enter") && e.ctrlKey )
 			this.execute();
 		else if( e.keyCode >= 49 && e.keyCode <= 58 && e.altKey && e.ctrlKey )
@@ -669,7 +716,7 @@ var WIDE = {
                 e.stopPropagation();
 			});
 			element.addEventListener("click", function(e){
-				WIDE.open( this.dataset["filename"] );
+				WIDE.open( this.dataset["filename"], true );
 			});
 			file_info.file_element = element;
             var entries = container.querySelectorAll(".filename .number");
@@ -720,7 +767,7 @@ var WIDE = {
 			if(!file.name)
 				continue;
 			if( !file.is_parent && !skip_log )
-				this.toConsole( file.name + ( !file.is_dir ? " " + file.size + "b" : "/"), file.is_dir ? "folder" : "file" );
+				this.toConsole( file.name + ( !file.is_dir ? " <span class='size'>" + file.size + "b</span>" : "/"), file.is_dir ? "folder" : "file" , true );
 			var fullpath = this.cleanPath( file.fullpath || folder + "/" + file.name );
 			var element = document.createElement("div");
 			element.className = "filename";
@@ -775,7 +822,7 @@ var WIDE = {
 				if(filename)
 				{
 					WIDE.toggleFiles();
-					WIDE.create( WIDE.cleanPath(folder + "/" + filename),"",true);
+					WIDE.create( WIDE.cleanPath(folder + "/" + filename),"",true );
 				}
 				setTimeout(function(){ element.innerHTML = new_file_text; },1);
 			});
@@ -831,18 +878,30 @@ var WIDE = {
 		return result.join("/");
 	},
 
+	processFolder: function( folder, default_to_root )
+	{
+		if( !folder )
+			return default_to_root ? "./" : this.current_folder;
+		if( folder[0] == "/" )
+			return folder;
+		return this.cleanPath( this.current_folder + "/" + folder) || "./";
+	},
+
 	toggleFiles: function()
 	{
 		document.querySelector("#open-files").style.display = "";
 		document.querySelector("#folder-files").style.display = "none";
-		queryforEach("#sidebar .header button",function(a){ a.classList.remove("selected"); });
+		queryforEach("#sidebar .header button.sidebarmode",function(a){ a.classList.remove("selected"); });
 		document.querySelector(".open-files-button").classList.add("selected");
 	},
 
-    toConsole: function( str, className )
+    toConsole: function( str, className, is_html )
     {
         var elem = document.createElement("div");
-        elem.innerText = str;
+        if(is_html)
+            elem.innerHTML = str;
+        else
+            elem.innerText = str;
         elem.className = "msg " + (className || "");
         this.console_element.appendChild(elem);
         if( this.console_element.childNodes.length > 1000)
@@ -853,18 +912,20 @@ var WIDE = {
     toggleConsole: function()
     {
         this.console_open = !this.console_open;
+		document.querySelector("#sidebar .header button.toggle-console").classList.toggle("selected");
         document.querySelector("#container").classList.toggle("show_console");
         this.onResize();
     }
 };
 
 //commands
-WIDE.commands.open = WIDE.commands.load = function( cmd, t ) { WIDE.load( WIDE.current_folder + "/" + t[1], null, true );} 
+WIDE.commands.open = WIDE.commands.load = function( cmd, t ) { WIDE.load( WIDE.current_folder + "/" + t[1], null, true ); } 
 WIDE.commands.save = function( cmd, t ) { WIDE.save(); }
 WIDE.commands.new = function( cmd, t ) { WIDE.create(t[1],"",true); }
 WIDE.commands.rm = WIDE.commands.delete = function( cmd, t ) { WIDE.delete( WIDE.current_folder + "/" + t[1]); }
-WIDE.commands.ls = WIDE.commands.list = function( cmd, t ) { WIDE.list(t[1]); }
-WIDE.commands.cd = function( cmd, t ) { var folder = WIDE.current_folder + (t.length > 1 ? "/" + t[1] : ""); WIDE.list( folder, true ); WIDE.toConsole(WIDE.cleanPath(folder),"folder"); }
+WIDE.commands.mv = WIDE.commands.move = function( cmd, t ) { WIDE.move( WIDE.current_folder + "/" + t[1], WIDE.current_folder + "/" + t[2] ); }
+WIDE.commands.ls = WIDE.commands.list = function( cmd, t ) { WIDE.list( t[1] ); }
+WIDE.commands.cd = function( cmd, t ) { WIDE.list( t[1], true, function(){ WIDE.toConsole( WIDE.current_folder,"filename folder"); }); }
 WIDE.commands.close  = function( cmd, t ) { WIDE.close(t[1]); }
 WIDE.commands.reset  = function( cmd, t ) { WIDE.reset(); }
 WIDE.commands.execute = function( cmd, t ) { WIDE.execute(); }
@@ -874,13 +935,14 @@ WIDE.commands.key = function( cmd, t ) { WIDE.setKey(t.slice(1).join(" ")); }
 WIDE.commands.tempkey = function( cmd, t ) { WIDE.setKey(t.slice(1).join(" "),false); }
 WIDE.commands.console = function( cmd, t ) { WIDE.toggleConsole(); }
 WIDE.commands.clear = function( cmd, t ) { WIDE.console_element.innerHTML = ""; }
+WIDE.commands.pwd = function( cmd, t ) { WIDE.toConsole( WIDE.current_folder + "/", "filename folder" ); }
 
 //buttons
-WIDE.buttons.push({ name:"new", icon:"elusive-file-new", command: "new"});
-WIDE.buttons.push({ name:"current files", className:'open-files-button selected', icon:"bootstrap-file", command: "files" });
-WIDE.buttons.push({ name:"open file", className:'list-files-button', icon:"bootstrap-folder-open", command: "list" });
+WIDE.buttons.push({ name:"new", icon:"elusive-file-new", command: "new" });
+WIDE.buttons.push({ name:"current files", className:'open-files-button selected sidebarmode', icon:"bootstrap-file", command: "files" });
+WIDE.buttons.push({ name:"open file", className:'list-files-button sidebarmode', icon:"bootstrap-folder-open", command: "list" });
 WIDE.buttons.push({ name:"save current", icon:"bootstrap-import", command: "save" });
-WIDE.buttons.push({ name:"show console", icon:"icomoon-terminal", command: "console" });
+WIDE.buttons.push({ name:"show console", className:"toggle-console", icon:"icomoon-terminal", command: "console" });
 WIDE.buttons.push({ name:"execute code", icon:"bootstrap-play", command: "execute" });
 
 //helpers

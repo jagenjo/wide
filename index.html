@@ -35,7 +35,7 @@ div, p { margin: 0; padding: 0; box-sizing: border-box; }
 #open-files, #folder-files { position: absolute; top: 30px; width: 100%; height: calc( 100% - 30px ); }
 #folder-files { display: none; overflow: auto; }
 #folder-files.loading { }
-#code-area{ width: calc( 100% - 240px ); height: calc( 100% - 0px ); position: absolute; right: 0; top: 0; }
+#code-area{ width: calc( 100% - 240px ); height: calc( 100% - 1px ); position: absolute; right: 1px; top: 0px; }
 #code-header{ width: 100%; height: 30px; color: #AAA; background-color: #111; line-height: 30px; padding-left: 10px; }
 #code-header .close { float: right; cursor: pointer; }
 #code-editor{ width: 100%; height: calc( 100% - 30px); }
@@ -60,6 +60,7 @@ button:focus, input:focus { outline: 0; }
 .filename.new-file { opacity: 0.5; padding-left: 8px !important; margin-bottom: 10px; }
 .filename.blocked { opacity: 0.25; cursor: not-allowed !important;}
 .filename.new-file input { width: 100%; background-color: black; color: white; border: 0; padding: 4px; }
+span.size { opacity: 0.5; }
 #code-header .filename { color: #AAA;}
 #code-header .filename .slash { color: #f242f2; margin: 0px 2px; }
 #code-header .filename .last { color: white; }
@@ -71,7 +72,8 @@ button:focus, input:focus { outline: 0; }
 #sidebar .project-title { background-color: #404040; color: #b5b5b5; padding: 4px; padding-left: 10px; width: 100%; margin-bottom: 4px; }
 #sidebar .project-title .buttons { float: right; }
 #sidebar .project-title .buttons span { margin-right: 4px; cursor: pointer; }
-.saving { background-color: white !important; color: black !important; }
+.saving  #code-header { background-color: #AAA !important; color: black !important; }
+.saving  #code-editor { outline: 1px solid #AAA !important; }
 
 #bottom { position: absolute; overflow: hidden; bottom: 0; width: 100%; height: 30px; background-color: black; color: #AAA; }
 #bottom .text-input { height: 30px; width: 100%; }
