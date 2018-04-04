@@ -98,6 +98,10 @@ You can use the buttons on top of the sidebar to browser server files.
 
 You cannot get into a level above the folder specified in the config.
 
+## Problems
+
+Remember that the editor can only access files that have the privileges set to +rw for the group that belongs the http server (usually www-data). Otherwise the editor won't be able to access the files.
+
 ## Contact
 
 For any suggestions or comments, you can contact me at javi.agenjo@gmail.com
