@@ -107,6 +107,12 @@ You cannot get into a level above the folder specified in the config.
 
 Remember that the editor can only access files that have the privileges set to +rw for the group that belongs the http server (usually www-data). Otherwise the editor won't be able to access the files.
 
+You can always set the privileges to all files inside a folder by executing this commands in the server:
+```sh
+sudo chmod -R ug+rw folder
+chown -R :www-data folder
+```
+
 ## Contact
 
 For any suggestions or comments, you can contact me at javi.agenjo@gmail.com
