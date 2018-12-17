@@ -83,7 +83,12 @@ By default the keys in the config should be hashed using MD5, this way if the ``
 
 You can disable the md5 in the server by changing the variable use_md5 to false ```$use_md5 = false;``` although I do not recommend it.
 
-Once the ```wide_config.json``` is created, you must configure the ```server.php``` to point to that file and be sure that the file is readable by your http server. To be sure set the file privileges to read-write: ```sudo chmod ug+rw wide_config.json``` and the file group to www-data: ```chown :www-data wide_config.json```
+Once the ```wide_config.json``` is created, you must configure the ```server.php``` to point to that file and be sure that the file is readable by your http server. To be sure set the file privileges to read-write and the file group to www-data: 
+
+```sh
+sudo chmod ug+rw wide_config.json
+chown :www-data wide_config.json
+```
 
 Now if everything is properly installed you can access the website and set the key typing at the bottom console bar:
 ```
@@ -97,6 +102,16 @@ key PROJECT_KEY
 You can use the buttons on top of the sidebar to browser server files.
 
 You cannot get into a level above the folder specified in the config.
+
+## Problems
+
+Remember that the editor can only access files that have the privileges set to +rw for the group that belongs the http server (usually www-data). Otherwise the editor won't be able to access the files.
+
+You can always set the privileges to all files inside a folder by executing this commands in the server:
+```sh
+sudo chmod -R ug+rw folder
+chown -R :www-data folder
+```
 
 ## Contact
 
