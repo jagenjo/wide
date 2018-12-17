@@ -166,9 +166,9 @@
 	{
 		if( !isset($_REQUEST["filename"]) )
 			die('{"status":-1,"msg":"params missing"}');
+        $filename = $_REQUEST["filename"];
 		if( strpos( $filename, ".." ) != FALSE )
 			die('{"status":-1,"msg":"invalid filename"}');
-        $filename = $_REQUEST["filename"];
         $autocompleted = autocomplete( $filename, $root_path );
 		$result = array();
 		$result["status"] = 1;

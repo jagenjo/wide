@@ -5,10 +5,15 @@
 var WIDE = {
 
     //config
-    persistent_session: true, //set to false if you do not want the keys to be stored in localStorage
-    server_url: "server.php", //change it if it is hosted in a different folder than the index.html
+    settings: {
+        server_url: "server.php", //change it if it is hosted in a different folder than the index.html
+        persistent_session: true, //set to false if you do not want the keys to be stored in localStorage
+        plugins: []
+    },
 
     //globals
+    key: "",
+
 	commands: {},
 	files: [],
 	files_by_name: {},
@@ -16,16 +21,21 @@ var WIDE = {
 	visible_file: null,
 	current_folder: ".",
 	extensions_to_language: { "js":"javascript" },
-    key: "",
 	buttons: [],
     console_open: false,
+    files_list_open: false,
 
 	init: function()
 	{
+		this.container = document.getElementById('container');
+		this.sidebar = document.getElementById('sidebar');
 		this.editor_container = document.getElementById('code-editor');
 
+		this.container.style.display = "none";
 		require.config({ paths: { 'vs': 'js/monaco-editor/min/vs' }});
 		require(['vs/editor/editor.main'], function(){
+			document.getElementById('loader').style.display = "none";
+			WIDE.container.style.display = "";
 			WIDE.onReady();
 		});
 
@@ -107,6 +117,7 @@ var WIDE = {
 		if(!file_info)
 			return null;
 
+        //editor already exist
 		if(file_info.editor)
 		{
 			if(this.visible_file != file_info)
@@ -122,6 +133,7 @@ var WIDE = {
 			return file_info.editor;
 		}
 
+        //create container
 		var editor_element = document.createElement("div");
 		editor_element.classList.add("editor-wrapper");
 		this.editor_container.appendChild( editor_element );
@@ -142,6 +154,7 @@ var WIDE = {
 		file_info.editor = editor;
 		editor.file_info = file_info;
 
+        //events
 		setTimeout(function(){ editor.layout(); }, 1000);
 		editor.onDidType( function(e){
 			WIDE.onContentChange( file_info );
@@ -151,64 +164,46 @@ var WIDE = {
 		editor.onKeyDown( function(e){
 			WIDE.onEditorKey(e);
 		});
-
-		/*
 		editor.addCommand(monaco.KeyCode.Escape, function() {
-			console.log('my command is executing!');
+			//console.log('my command is executing!');
 		});
-		*/
 
+        //hide previous editor
 		if(	this.visible_file && this.visible_file != file_info )
 			this.visible_file.editor_element.style.display = "none";
 		this.visible_file = file_info;
 
+        //update content and settings
 		editor.setValue( file_info.content || "" );
-
         if( file_info.cursor )
             editor.setPosition( file_info.cursor );
 		if( file_info.scrollTop )
 			editor.setScrollTop( file_info.scrollTop );
+
 		return editor;
 	},
 
 	load: function( filename, callback, open, focus )
 	{
 		var file_info = this.onFileAdded( filename );
-
-        if(!this.key)
-        {
-            console.error("file cannot be loaded, no key set. Type 'key YOUKEY' in the command bar to have access to the server.");
-            return;
-        }
-
 		console.log("loading file: " + filename );
 
-		var form = new FormData();
-		form.append("action","load");
-		form.append("filename",filename);
-        form.append("key", this.key );
+		if( !WIDE_SERVER.load( filename, inner_loaded, inner_error ) )
+			return null;
 
-		var headers = new Headers();
-		headers.append('pragma', 'no-cache');
-	 	headers.append('cache-control', 'no-cache');
-
-		var info = { method: 'POST',  body: form, headers: headers };
-
-		fetch( this.server_url, info).then(function(resp){
-			if(resp.status != 200)
-				throw Error(resp.statusText);
-			var headers = headersToObject( resp.headers );
-			return resp.text();
-		}).then( function(data){
+		function inner_loaded( filename, data )
+		{
 			var file_info = WIDE.onFileLoaded( filename, data );
 			if(callback)
 				callback( filename, file_info );
 			if( open )
 				WIDE.open( filename, focus );
-		}).catch(function(err){
-			console.error("file not found: " + file_info.name );
+		}
+
+		function inner_error( filename, err )
+		{
 			WIDE.close( file_info.name );
-		});
+		}
 
         return file_info;
 	},
@@ -218,51 +213,35 @@ var WIDE = {
 		if(!WIDE.current_file)
 			return;
 
-        if(!this.key)
-        {
-            console.error("file cannot be saved, no key set");
-            return;
-        }            
-
 		var file_info = WIDE.current_file;
 		file_info.content = file_info.editor.getValue();
 
 		var filename = WIDE.current_file.name;
 		var content = WIDE.current_file.content;
 
-		var form = new FormData();
-		form.append("action","save");
-		form.append("filename",filename);
-		form.append("content",content);
-        form.append("key", this.key );
-		var info = { method: 'POST', body: form };
+		if( !WIDE_SERVER.save( filename, content, inner_complete, inner_error ) )
+			return;
 
         document.querySelector("#code-area").classList.add("saving");
 
-		fetch( this.server_url , info ).then(function(resp){
-			return resp.text(); 
-		}).then( function(data){
-			var r = JSON.parse(data);
-			if(r.status == 1)
-            {
-                document.querySelector("#code-area").classList.remove("saving");
-                WIDE.onFileSaved( filename );
-            }
-			else
-				console.error( r.msg );
-		});
+		function inner_complete( filename )
+		{
+			document.querySelector("#code-area").classList.remove("saving");
+			WIDE.onFileSaved( filename );
+		}
+
+		function inner_error()
+		{
+			document.querySelector("#code-area").classList.remove("saving");
+			document.querySelector("#code-area").classList.add("error-saving");
+			setTimeout( function(){ document.querySelector("#code-area").classList.remove("error-saving"); }, 1000 );
+		}
 	},
 
 	"delete": function( filename )
 	{
 		if(!filename)
 			return;
-
-        if(!this.key)
-        {
-            console.error("file cannot be deleted, no key set");
-            return;
-        }              
 
 		var file_info = WIDE.files_by_name[filename];
 		if(file_info && file_info._exist === false) //local file
@@ -271,24 +250,13 @@ var WIDE = {
 			return;
 		}
 
-		var form = new FormData();
-		form.append("action","delete");
-		form.append("filename",filename);
-        form.append("key", this.key );
-		var info = { method: 'POST', body: form };
+		if( !WIDE_SERVER.delete( filename, inner_complete) )
+			return;
 
-		fetch( this.server_url, info ).then(function(resp){
-			return resp.text();
-		}).then( function(data){
-			var r = JSON.parse(data);
-			if(r.status == 1)
-			{
-				console.log(r.msg);
-                WIDE.close( filename );
-			}
-			else
-				console.error( r.msg );
-		});
+		function inner_complete( filename )
+		{
+            WIDE.close( filename );
+		}
 	},
 
 	move: function( filename, new_filename )
@@ -296,7 +264,7 @@ var WIDE = {
 		if(!filename || !new_filename)
 			return;
 
-        if(!this.key)
+        if(!this.key) //keep this
         {
             console.error("file cannot be moved, no key set");
             return;
@@ -306,22 +274,13 @@ var WIDE = {
 		if(file_info)
 			this.close( filename );
 
-		var form = new FormData();
-		form.append("action","move");
-		form.append("filename",filename);
-		form.append("new_filename", new_filename);
-        form.append("key", this.key );
-		var info = { method: 'POST', body: form };
+		if( !WIDE_SERVER.move( filename, new_filename, inner_complete ) )
+			return;
 
-		fetch( this.server_url, info ).then(function(resp){
-			return resp.text();
-		}).then( function(data){
-			var r = JSON.parse(data);
-			if(r.status == 1)
-                WIDE.list();
-			else
-				console.error( r.msg );
-		});
+		function inner_complete()
+		{
+             WIDE.list();
+		};
 	},
 
 	open: function( filename, focus )
@@ -369,16 +328,28 @@ var WIDE = {
         var file_info = this.files_by_name[ filename ];
         if(!file_info)
             return;
-		if(file_info.editor_element) //bin files do not have editor
-			file_info.editor_element.parentNode.removeChild( file_info.editor_element );
+
+		//remove filename from list
         file_info.file_element.parentNode.removeChild( file_info.file_element );
+		//update numbers next to filename
         var entries = document.querySelectorAll("#open-files .filename .number");
         for(var i = 0; i < entries.length && i < 10; ++i)
             entries[i].innerHTML = i+1;
+		//remove file from containers
         var index = this.files.indexOf( file_info );
         if(index != -1)
             this.files.splice( index, 1 );
         delete this.files_by_name[ filename ];
+		if( file_info.onLeave )
+			file_info.onLeave( file_info.editor ? file_info.editor.getValue() : null );
+        //remove editor
+		if(file_info.editor_element) //bin files do not have editor
+        {
+            file_info.editor.destroy();
+			file_info.editor_element.parentNode.removeChild( file_info.editor_element );
+        }
+        
+		//select previous file
         if(!is_current)
             return;
         var next_file = this.files[ index < this.files.length ? index : this.files.length - 1 ];
@@ -389,7 +360,7 @@ var WIDE = {
 			header.innerHTML = "";
 		}
         else
-            this.open(next_file.name);
+            this.open( next_file.name );
     },
 
 	create: function( filename, content, open )
@@ -440,26 +411,16 @@ var WIDE = {
             return;
         }
 
-		container.classList.add("loading");
-		var form = new FormData();
-		form.append("action","list");
-		form.append("folder", folder );
-        form.append("key", this.key );
-		var info = { method: 'POST', body: form };
+		if(!WIDE_SERVER.list( folder, false, inner_complete ))
+			return;
 
-		fetch( this.server_url, info ).then(function(resp){
-			return resp.text();
-		}).then( function(data){
-			var r = JSON.parse(data);
-			if(r.status == 1)
-            {
-                WIDE.onShowFolderFiles( r.folder, r.files, r.project, skip_log );
-                if(on_complete)
-                    on_complete(r);
-            }
-			else
-				console.error( r.msg );
-		});
+		container.classList.add("loading");
+
+		function inner_complete( folder, files, project ){
+			WIDE.onShowFolderFiles( folder, files, project, skip_log );
+			if(on_complete)
+				on_complete(folder, files, project);
+		}
 	},
 
     autocomplete: function( filename, on_complete, folder )
@@ -471,28 +432,14 @@ var WIDE = {
 
         var fullpath = this.cleanPath( folder + "/" + filename );
 
-		var form = new FormData();
-		form.append("action","autocomplete");
-		form.append("filename", fullpath );
-        form.append("key", this.key );
-		var info = { method: 'POST', body: form };
+		if(!WIDE_SERVER.autocomplete( fullpath, inner_complete ))
+			return;
 
-		fetch( this.server_url, info ).then(function(resp){
-			return resp.text();
-		}).then( function(data){
-			var r = JSON.parse(data);
-			if(r.status == 1)
-			{
-				var shared = "";
-				if( r.data.length == 1 )
-					shared = r.data[0];
-				else if( r.data.length > 1 )
-					shared = sharedStart( r.data );
-				on_complete( r.data, shared.substr( filename.length ) );
-			}
-			else
-				console.error( r.msg );
-		});
+		function inner_complete( data, shared )
+		{
+			if( on_complete )
+				on_complete( data, shared );
+		}
     },
 
     serialize: function()
@@ -504,14 +451,15 @@ var WIDE = {
 		}
 
         var o = { 
-			key: this.persistent_session ? this.key : null, 
+			key: this.settings.persistent_session ? this.key : null, 
 			files: [],
-			current_folder: this.current_folder
+			current_folder: this.current_folder,
+            settings: this.settings
 		};
         for(var i = 0; i < this.files.length; ++i)
         {
             var file_info = this.files[i];
-			if(!file_info.name)
+			if(!file_info.name || file_info.internal)
 				continue;
 			var item = { name: file_info.name, cursor: file_info.cursor, scrollTop: file_info.scrollTop };
             if(file_info._exist === false)
@@ -531,6 +479,13 @@ var WIDE = {
     {
 		if(o.key)
 			this.key = o.key;
+
+        if(o.settings)
+        {
+            this.settings = o.settings;
+            if(this.settings.plugins && this.settings.plugins.length)
+                this.loadPlugins();
+        }
         
 		if(o.current_folder)
 			this.current_folder = o.current_folder;
@@ -571,6 +526,11 @@ var WIDE = {
 			this.current_file.editor.focus();
     },
 
+    clearSession: function()
+    {
+        localStorage.removeItem("wide_session");
+    },
+    
     loadSession: function()
     {
         var session = localStorage.getItem("wide_session");
@@ -587,6 +547,22 @@ var WIDE = {
     {
         localStorage.setItem("wide_session", JSON.stringify( WIDE.serialize() ));
     },
+
+    loadPlugins: function()
+    {
+        if(!this.settings.plugins)
+            return;
+        var old = document.querySelectorAll("script.plugin");
+        for(var i = 0; i < old.length; ++i)
+            old[i].parentNode.removeChild( old[i] );
+        for(var i = 0; i < this.settings.plugins.length; ++i)
+        {
+            var script = document.createElement('script');
+            script.src = this.settings.plugins[i];
+            script.className = "plugin";
+            document.head.appendChild( script );
+        }
+    },    
 	
     checkAllFilesSaved: function()
     {
@@ -601,10 +577,14 @@ var WIDE = {
 
 	execute: function()
 	{
+        if(!this.current_file)
+            return;
+		var content = this.current_file.editor.getValue();
+        if(this.current_file.onExecute)
+            return this.current_file.onExecute(content);
 		console.log("evaluating code");
         console.log("--------------------------");
-		var code = this.current_file.editor.getValue();
-		var func = new Function(code);
+		var func = new Function(content);
 		var r = func.call(window);
 	},
 
@@ -615,7 +595,7 @@ var WIDE = {
 		if(this.key)
 			this.list();
 		if(temporal)
-			WIDE.persistent_session = false;
+			WIDE.settings.persistent_session = false;
 		console.log("key assigned");
 	},
 
@@ -755,7 +735,7 @@ var WIDE = {
 		var tree = folder.split("/");
 		var folders = [{ name: "root folder", is_dir: true, is_parent: true, fullpath: "." }];
 		for( var i = 0; i < tree.length; ++i )
-			folders.push({ name: tree[i], is_dir: true, is_parent: true, fullpath: tree.slice(0,i+1).join("/") });
+			folders.push({ name: tree[i], is_dir: true, is_parent: true, is_current: i == tree.length - 1, fullpath: tree.slice(0,i+1).join("/") });
 		var files_and_folders = folders.concat( files );
 		var folders = files_and_folders.filter(function(a){ return a.is_dir; });
 		var files = files_and_folders.filter(function(a){ return !a.is_dir; });
@@ -775,12 +755,16 @@ var WIDE = {
 				element.classList.add("folder");
 			if( file.is_parent )
 				element.classList.add("parent-folder");
+			if( file.is_current )
+				element.classList.add("current-folder");
 			var icon = "bootstrap-file";
 			if( file.is_dir ) 
 				icon = "bootstrap-folder-close";
 			if( file.is_parent ) 
 				icon = "bootstrap-play";
 			element.innerHTML = '<svg class="icon"><use xlink:href="#si-'+icon+'" /></svg> ' + file.name;
+			if( this.files_by_name[ "/" + fullpath ] )
+				element.classList.add("open");
 			container.appendChild(element);
 			var depth = !fullpath ? 0 : fullpath.split("/").length;
 			element.style.marginLeft = (depth * 5) + "px";
@@ -800,9 +784,16 @@ var WIDE = {
 			if(can_be_opened)
 				element.addEventListener("click", function(e){
 					if( this.dataset["is_dir"] == "true" )
-						WIDE.list( this.dataset["fullpath"] );
+						WIDE.list( "/" + this.dataset["fullpath"] );
 					else
-						WIDE.load( this.dataset["fullpath"], null, true );
+					{
+						if( WIDE.files_by_name[ "/" + this.dataset["fullpath"] ] )
+						{
+							if( !confirm("File already open, changes will be lost, are you sure?") )
+								return;
+						}
+						WIDE.load( "/" + this.dataset["fullpath"], null, true );
+					}
 				});
 		}
 
@@ -848,7 +839,8 @@ var WIDE = {
     {
 		if(!this.current_file)
 			return;
-        var old = this.current_file.content;
+        if(this.current_file.onLeave)
+            this.current_file.onLeave( this.current_file.editor ? this.current_file.editor.getValue() : null );
 		this.current_file.file_element.classList.remove("selected");
     },
 
@@ -889,10 +881,21 @@ var WIDE = {
 
 	toggleFiles: function()
 	{
-		document.querySelector("#open-files").style.display = "";
-		document.querySelector("#folder-files").style.display = "none";
-		queryforEach("#sidebar .header button.sidebarmode",function(a){ a.classList.remove("selected"); });
-		document.querySelector(".open-files-button").classList.add("selected");
+        this.files_list_open = !this.files_list_open;
+
+        if( this.files_list_open )
+        {
+            document.querySelector("#folder-files").style.display = "";
+            document.querySelector("#open-files").style.display = "none";
+            document.querySelector(".list-files-button").classList.add("selected");
+            this.list();
+        }
+        else
+        {
+            document.querySelector("#folder-files").style.display = "none";
+            document.querySelector("#open-files").style.display = "";
+    		document.querySelector(".list-files-button").classList.remove("selected");
+        }
 	},
 
     toConsole: function( str, className, is_html )
@@ -915,8 +918,247 @@ var WIDE = {
 		document.querySelector("#sidebar .header button.toggle-console").classList.toggle("selected");
         document.querySelector("#container").classList.toggle("show_console");
         this.onResize();
+    },
+
+    editSettings: function()
+    {
+        if( this.files_by_name[ "settings.json" ] )
+        {
+            this.open("settings.json",true);
+            return;
+        }
+        var data = JSON.stringify( this.settings, null, " " );
+        var file_info = this.onFileAdded("settings.json", data);
+        file_info.internal = true;
+        file_info.onLeave = inner;
+        file_info.onExecute = inner;
+        
+        function inner(content){
+            var new_settings = JSON.parse(content);
+            WIDE.settings = new_settings;
+            console.log("settings modifyed");
+        }
+        this.open("settings.json",true);
     }
 };
+
+// Bridge between client and server, you can create your own if you do not want to use server.php
+// *************************************************************************************************
+var WIDE_SERVER = {
+	url: "server.php",
+	key: "",
+
+	load: function( filename, callback, callback_error )
+	{
+        if(!WIDE.key)
+        {
+            console.error("file cannot be loaded, no key set. Type 'key YOUKEY' in the command bar to have access to the server.");
+            return false;
+        }
+
+		var form = new FormData();
+		form.append( "action", "load" );
+		form.append( "filename", filename );
+        form.append( "key", WIDE.key );
+		var headers = new Headers();
+		headers.append('pragma', 'no-cache');
+	 	headers.append('cache-control', 'no-cache');
+		var info = { method: 'POST',  body: form, headers: headers };
+
+		fetch( WIDE.settings.server_url, info ).then(function(resp){
+			if(resp.status != 200)
+				throw Error(resp.statusText);
+			var headers = headersToObject( resp.headers );
+			return resp.text();
+		}).then( function(data){
+			if(callback)
+				callback( filename, data );
+		}).catch(function(err){
+			console.error("file not found: " + filename );
+			if(callback_error)
+				callback_error( filename )
+		});
+
+        return true;
+	},
+
+	save: function( filename, content, callback, callback_error )
+	{
+        if(!WIDE.key)
+        {
+            console.error("file cannot be saved, no key set");
+            return;
+        }            
+
+		var form = new FormData();
+		form.append("action","save");
+		form.append("filename",filename);
+		form.append("content",content);
+        form.append("key", WIDE.key );
+		var info = { method: 'POST', body: form };
+
+		fetch( WIDE.settings.server_url, info ).then(function(resp){
+			return resp.text(); 
+		}).then( function(data){
+			var r = JSON.parse(data);
+			if(r.status == 1)
+			{
+				if(callback)
+					callback(filename);
+			}
+			else
+			{
+				console.error( r.msg );
+				if(callback_error)
+					callback_error(filename, r.msg);
+			}
+		});
+	},
+
+	"delete": function( filename, callback, callback_error )
+	{
+		if(!filename)
+			return false;
+
+        if(!WIDE.key)
+        {
+            console.error("file cannot be deleted, no key set");
+            return false;
+        }
+
+		var form = new FormData();
+		form.append("action","delete");
+		form.append("filename",filename);
+        form.append("key", WIDE.key );
+		var info = { method: 'POST', body: form };
+
+		fetch( WIDE.settings.server_url, info ).then(function(resp){
+			return resp.text();
+		}).then( function(data){
+			var r = JSON.parse(data);
+			if(r.status == 1)
+			{
+				console.log(r.msg);
+				if(callback)
+					callback(filename);
+			}
+			else
+			{
+				console.error( r.msg );
+				if(callback_error)
+					callback_error(filename);
+			}
+		});
+
+		return true;
+	},
+
+	move: function( filename, new_filename, callback, callback_error )
+	{
+		if(!filename || !new_filename)
+			return false;
+
+        if(!WIDE.key)
+        {
+            console.error("file cannot be moved, no key set");
+            return false;
+        }              
+
+		var form = new FormData();
+		form.append("action","move");
+		form.append("filename",filename);
+		form.append("new_filename", new_filename);
+        form.append("key", WIDE.key );
+		var info = { method: 'POST', body: form };
+
+		fetch( WIDE.settings.server_url, info ).then(function(resp){
+			return resp.text();
+		}).then( function(data){
+			var r = JSON.parse(data);
+			if(r.status == 1)
+			{
+                if(callback)
+					callback( filename, new_filename );
+			}
+			else
+			{
+				console.error( r.msg );
+                if(callback_error)
+					callback_error( filename, new_filename );
+			}
+		});
+
+		return true;
+	},
+
+	list: function( folder, skip_log, callback, callback_error )
+	{
+        if(!WIDE.key)
+        {
+            return false;
+        }
+
+		var form = new FormData();
+		form.append("action","list");
+		form.append("folder", folder );
+        form.append("key", WIDE.key );
+		var info = { method: 'POST', body: form };
+
+		fetch( WIDE.settings.server_url, info ).then(function(resp){
+			return resp.text();
+		}).then( function(data){
+			var r = JSON.parse(data);
+			if(r.status == 1)
+            {
+				if(callback)
+					callback( r.folder, r.files, r.project, skip_log );
+            }
+			else
+			{
+				console.error( r.msg );
+				if(callback_error)
+					callback_error(r.msg);
+			}
+		});
+	},
+
+    autocomplete: function( fullpath, callback, callback_error )
+    {
+        if(!WIDE.key)
+            return false;
+
+		var filename = fullpath.split("/").pop();
+
+		var form = new FormData();
+		form.append("action","autocomplete");
+		form.append("filename", fullpath );
+        form.append("key", WIDE.key );
+		var info = { method: 'POST', body: form };
+
+		fetch( WIDE.settings.server_url, info ).then(function(resp){
+			return resp.text();
+		}).then( function(data){
+			var r = JSON.parse(data);
+			if(r.status == 1)
+			{
+				var shared = "";
+				if( r.data.length == 1 )
+					shared = r.data[0];
+				else if( r.data.length > 1 )
+					shared = sharedStart( r.data );
+				if(callback)
+					callback( r.data, shared.substr( filename.length ) );
+			}
+			else
+			{
+				console.error( r.msg );
+				if(callback_error)
+					callback_error(r.msg);
+			}
+		});
+		return true;
+    }
+}
 
 //commands
 WIDE.commands.open = WIDE.commands.load = function( cmd, t ) { WIDE.load( WIDE.current_folder + "/" + t[1], null, true ); } 
@@ -929,21 +1171,22 @@ WIDE.commands.cd = function( cmd, t ) { WIDE.list( t[1], true, function(){ WIDE.
 WIDE.commands.close  = function( cmd, t ) { WIDE.close(t[1]); }
 WIDE.commands.reset  = function( cmd, t ) { WIDE.reset(); }
 WIDE.commands.execute = function( cmd, t ) { WIDE.execute(); }
-WIDE.commands.files = function( cmd, t ) { WIDE.toggleFiles(); }
 WIDE.commands.reload = function( cmd, t ) { for(var i in WIDE.files) WIDE.load( WIDE.files[i].name ); }
 WIDE.commands.key = function( cmd, t ) { WIDE.setKey(t.slice(1).join(" ")); }
 WIDE.commands.tempkey = function( cmd, t ) { WIDE.setKey(t.slice(1).join(" "),false); }
 WIDE.commands.console = function( cmd, t ) { WIDE.toggleConsole(); }
 WIDE.commands.clear = function( cmd, t ) { WIDE.console_element.innerHTML = ""; }
 WIDE.commands.pwd = function( cmd, t ) { WIDE.toConsole( WIDE.current_folder + "/", "filename folder" ); }
+WIDE.commands.toggleFiles = function( cmd, t ) { WIDE.toggleFiles(); }
+WIDE.commands.settings = function( cmd, t ) { WIDE.editSettings(); }
 
 //buttons
 WIDE.buttons.push({ name:"new", icon:"elusive-file-new", command: "new" });
-WIDE.buttons.push({ name:"current files", className:'open-files-button selected sidebarmode', icon:"bootstrap-file", command: "files" });
-WIDE.buttons.push({ name:"open file", className:'list-files-button sidebarmode', icon:"bootstrap-folder-open", command: "list" });
+WIDE.buttons.push({ name:"open file", className:'list-files-button', icon:"bootstrap-folder-open", command: "toggleFiles" });
 WIDE.buttons.push({ name:"save current", icon:"bootstrap-import", command: "save" });
 WIDE.buttons.push({ name:"show console", className:"toggle-console", icon:"icomoon-terminal", command: "console" });
 WIDE.buttons.push({ name:"execute code", icon:"bootstrap-play", command: "execute" });
+WIDE.buttons.push({ name:"settings", icon:"bootstrap-menu-hamburger", command: "settings" });
 
 //helpers
 function queryforEach( selector,callback ) { var list = document.querySelectorAll(selector); for(var i = 0;i < list.length; ++i) callback( list[i] ); }
